@@ -1,26 +1,8 @@
-# Python
+# Never commit real customer exports or generated CX hold lists (PII)
+data/*.csv
+build/
+cx_actions/
 __pycache__/
 *.pyc
-.pytest_cache/
-
-# Local scratch / logs
-*.log
-*.err.log
-*.bak
-*.zip
-_local-check*.png
-live-check*.png
-
-# Tooling
-.codex*
-.obsidian/
-**/.obsidian/
-
-# Personal application materials must never be committed to the portfolio
-CV_Riccardo Capanna*
-CV_Riccardo_Capanna_*
-Cover_Letter_*
-docs/application-specific/
-.cache/
-# late_orders.py / review_triage.py output: customer lists with emails
-cx_actions/
+.venv/
+.env

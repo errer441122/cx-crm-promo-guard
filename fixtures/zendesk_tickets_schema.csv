@@ -1,0 +1,5 @@
+Id,Requester email,Status,Priority,Subject,Tags,Created at,Updated at
+ZD-901,vip.stuck@example.com,open,urgent,Where is my order #3003? Courier lost parcel,shipping lost_parcel,2026-05-30,2026-05-31
+ZD-902,zendesk.angry@example.com,pending,high,Refund request for broken item #3008,refund damaged,2026-05-30,2026-05-31
+ZD-903,resolved.old@example.com,solved,normal,Question about invoice,billing,2026-05-06,2026-05-08
+ZD-904,ticket.only@example.com,open,normal,Wrong size received,exchange,2026-05-31,2026-05-31
