@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>CX-to-CRM AI Promo Guard &amp; Proactive Recovery Workflow</title>
-<meta name="description" content="n8n + AI Triage + Klaviyo/HubSpot/Zendesk/Shopify workflows that pause promotions for frustrated customers and release holds automatically after cooldown.">
+<title>CX-to-CRM AI Promo Guard &mdash; Interactive Walkthrough</title>
+<meta name="description" content="Visual interactive simulator of two n8n workflows bridging AfterShip, Trustpilot, Zendesk, and Shopify into Klaviyo & HubSpot Global Exclusion Segments with human-in-the-loop AI triage.">
 <style>
 @font-face { font-family: "Outfit"; src: url("fonts/outfit-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Outfit"; src: url("fonts/outfit-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
@@ -13,168 +13,495 @@
 
 :root {
   color-scheme: light;
-  --page: #f7f5f2; --surface: #ffffff; --surface-2: #faf8f5; --ink: #171412; --ink-2: #524a44; --muted: #7a7169;
-  --line: #e4ded7; --accent: #b43b1e; --accent-ink: #ffffff; --tint: #fceee9;
-  --good: #0f6b4a; --good-tint: #e8f5ee; --warn: #945600; --warn-tint: #fef5e5;
+  --bg: #f7f5f2; --card: #ffffff; --sub: #faf8f5; --ink: #171412; --ink2: #524a44; --muted: #7a7169;
+  --line: #e4ded7; --accent: #b43b1e; --accent-ink: #ffffff; --accent-soft: #fceee9;
+  --ok: #0f6b4a; --ok-bg: #e8f5ee; --ok-bd: #a7e3c5;
+  --warn: #a15c00; --warn-bg: #fff8e6; --warn-bd: #f7d78c;
+  --bad: #b42318; --bad-bg: #fef2f2; --bad-bd: #fecaca;
+  --zd-bg: #fffbeb; --zd-bd: #f59e0b;
+  --slack-bg: #1a1d21; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #110f0e; --surface: #1a1715; --surface-2: #221e1b; --ink: #f4f0ec; --ink-2: #c6beb7; --muted: #938a82;
-    --line: #312b27; --accent: #f07b5d; --accent-ink: #1a0c08; --tint: #2e1812;
-    --good: #4dd09d; --good-tint: #13281f; --warn: #f5be5b; --warn-tint: #2c2211;
+    --bg: #110f0e; --card: #1a1715; --sub: #221e1b; --ink: #f4f0ec; --ink2: #c6beb7; --muted: #938a82;
+    --line: #312b27; --accent: #f07b5d; --accent-ink: #1a0c08; --accent-soft: #2e1812;
+    --ok: #4dd09d; --ok-bg: #11291f; --ok-bd: #1d4d38;
+    --warn: #fbbf24; --warn-bg: #2c210b; --warn-bd: #5c4212;
+    --bad: #f87171; --bad-bg: #2f1417; --bad-bd: #632227;
+    --zd-bg: #29200e; --zd-bd: #d97706;
+    --slack-bg: #0f1318; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink); font: 15.5px/1.6 "Outfit", system-ui, -apple-system, sans-serif; }
-code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.9em; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 "Outfit", system-ui, -apple-system, sans-serif; }
 a { color: var(--accent); text-underline-offset: 3px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-header.nav { position: sticky; top: 0; z-index: 5; background: var(--page); border-bottom: 1px solid var(--line); }
-header.nav .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
-.brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
-.nav nav { display: flex; gap: 18px; font-size: 14px; }
-.nav nav a { color: var(--ink-2); text-decoration: none; }
-.nav .src { margin-left: auto; font-size: 14px; }
+code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.87em; background: var(--sub); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
-.hero { padding: 50px 0 30px; }
-.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
-h1 { font-size: clamp(28px, 4.2vw, 44px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
-.lead { font-size: 17px; color: var(--ink-2); max-width: 72ch; margin: 0 0 18px; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.btn { display: inline-block; font: inherit; font-size: 14.5px; font-weight: 600; border-radius: 999px; padding: 10px 20px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+header.nav { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
+header.nav .wrap { display: flex; align-items: center; gap: 18px; min-height: 58px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; font-size: 15.5px; }
+.nav-links { display: flex; gap: 14px; font-size: 13.5px; margin-left: auto; flex-wrap: wrap; }
+.nav-links a { color: var(--ink2); text-decoration: none; font-weight: 600; }
+.nav-links a:hover { color: var(--accent); }
+
+.hero { padding: 44px 0 26px; }
+.kicker { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.09; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 26ch; }
+.lead { font-size: 17px; color: var(--ink2); max-width: 74ch; margin: 0 0 20px; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--accent); }
 
-section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin: 0 0 26px; }
-section.card h2 { font-size: 23px; letter-spacing: -0.02em; margin: 0 0 8px; }
-section.card > p { color: var(--ink-2); margin: 0 0 18px; max-width: 78ch; }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.cmp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.cmp.before { border-left: 4px solid var(--bad); }
+.cmp.after { border-left: 4px solid var(--ok); }
+.cmp h2 { font-size: 13.5px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+.cmp.before h2 { color: var(--bad); }
+.cmp.after h2 { color: var(--ok); }
+.cmp ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--ink2); display: grid; gap: 5px; }
 
-.flow-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.node-btn { text-align: left; font: inherit; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); }
-.node-btn:hover, .node-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); }
-.node-btn small { display: block; font-size: 11.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; }
-.node-btn b { display: block; font-size: 14.5px; margin-top: 2px; }
-.inspector { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
-.inspector h3 { margin: 0 0 6px; font-size: 17px; }
-.inspector p { margin: 0 0 10px; color: var(--ink-2); font-size: 14.5px; }
-.inspector pre { margin: 0; padding: 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); overflow-x: auto; font-size: 12.5px; }
+section.block { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; margin: 22px 0; }
+section.block h2 { font-size: 22px; letter-spacing: -0.02em; margin: 0 0 6px; }
+.subhead { color: var(--ink2); margin: 0 0 18px; font-size: 15px; max-width: 78ch; }
+
+/* Scenario Picker */
+.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.sc-btn { text-align: left; font: inherit; background: var(--sub); border: 2px solid var(--line); border-radius: 12px; padding: 13px 15px; cursor: pointer; color: var(--ink); transition: all .15s; }
+.sc-btn:hover { border-color: var(--accent); }
+.sc-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 2px 10px rgba(180,59,30,.12); }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.sc-btn .pill { margin-bottom: 6px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-bd); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-bd); }
+.sc-btn b { display: block; font-size: 14.5px; line-height: 1.25; }
+.sc-btn span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+.input-box { background: var(--sub); border: 1px solid var(--line); border-radius: 10px; padding: 12px 15px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 13.5px; align-items: baseline; }
+.input-box strong { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; }
+
+/* Visual Pipeline Track */
+.pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.step { border-radius: 11px; padding: 11px 12px; border: 1.5px solid var(--line); background: var(--sub); transition: all .2s; }
+.step small { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.step b { display: block; font-size: 13px; line-height: 1.25; margin: 3px 0; }
+.step p { margin: 0; font-size: 12px; color: var(--ink2); line-height: 1.35; }
+.step.ok { background: var(--ok-bg); border-color: var(--ok-bd); }
+.step.ok small { color: var(--ok); }
+.step.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
+.step.warn small { color: var(--warn); }
+.step.bad { background: var(--bad-bg); border-color: var(--bad-bd); }
+.step.bad small { color: var(--bad); }
+.step.skip { opacity: .45; border-style: dashed; }
+
+/* 3 Realistic Output Mockups */
+.outputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(295px, 1fr)); gap: 14px; }
+.mock { border-radius: 14px; border: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; }
+.mock-head { padding: 10px 14px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--sub); }
+.mock-head .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 7px; }
+.mock-body { padding: 15px; background: var(--card); flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.status-box { border-radius: 10px; padding: 10px 11px; border: 1.5px solid var(--line); background: var(--sub); }
+.status-box.paused { background: var(--bad-bg); border-color: var(--bad-bd); }
+.status-box.live { background: var(--ok-bg); border-color: var(--ok-bd); }
+.status-box small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+.status-box strong { display: block; font-size: 13.5px; margin-top: 2px; }
+.status-box.paused strong { color: var(--bad); }
+.status-box.live strong { color: var(--ok); }
+
+.kv { display: grid; gap: 7px; font-size: 13px; }
+.kv-row { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.kv-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.kv-row span { color: var(--muted); font-size: 12px; }
+.kv-row strong { text-align: right; font-weight: 600; }
+
+.zd-banner { background: var(--zd-bg); border: 1px solid var(--zd-bd); color: var(--warn); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px; border-radius: 8px; }
+.zd-draft { background: var(--sub); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 13.5px; line-height: 1.5; color: var(--ink); font-style: italic; }
+.zd-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+
+.slack-card { background: var(--slack-bg); color: var(--slack-ink); padding: 15px; flex: 1; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; }
+.slack-meta { font-size: 11.5px; color: var(--slack-muted); margin-bottom: 8px; }
+.slack-msg { border-left: 3px solid #f07b5d; padding-left: 11px; display: grid; gap: 6px; }
+.slack-msg.quiet { border-left-color: #64748b; color: var(--slack-muted); }
+.slack-msg.ok { border-left-color: #34d399; }
+.slack-note { font-size: 11.5px; color: #fbbf24; margin-top: 10px; font-weight: 600; }
+
+/* State Machine Visual Strip */
+.states { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.st-card { background: var(--sub); border: 1.5px solid var(--line); border-radius: 12px; padding: 15px 16px; position: relative; }
+.st-card.s-hold { border-top: 4px solid var(--bad); }
+.st-card.s-cool { border-top: 4px solid var(--warn); }
+.st-card.s-rel { border-top: 4px solid var(--ok); }
+.st-card.s-norm { border-top: 4px solid var(--muted); }
+.st-card small { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
+.st-card h3 { margin: 4px 0 6px; font-size: 15.5px; }
+.st-card p { margin: 0; font-size: 13.5px; color: var(--ink2); }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.rule-card { background: var(--sub); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.rule-card h3 { margin: 8px 0 6px; font-size: 15.5px; }
+.rule-card p { margin: 0; font-size: 14px; color: var(--ink2); }
 
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); }
-thead th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
-.badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
-.badge.hold { background: var(--tint); color: var(--accent); }
-.badge.rel { background: var(--good-tint); color: var(--good); }
-.badge.warn { background: var(--warn-tint); color: var(--warn); }
+thead th { font-size: 12px; color: var(--muted); font-weight: 600; }
 
-footer { border-top: 1px solid var(--line); padding: 24px 0 44px; color: var(--ink-2); font-size: 13.5px; }
-@media (max-width: 640px) { .wrap { padding: 0 16px; } .nav nav { display: none; } section.card { padding: 20px 16px; } }
+footer { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--muted); font-size: 13.5px; }
+@media (max-width: 920px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } .states { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .wrap { padding: 0 16px; } section.block { padding: 18px 16px; } .pipeline, .states { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <header class="nav"><div class="wrap">
   <a class="brand" href="#top">CX-to-CRM AI Promo Guard</a>
-  <nav>
-    <a href="#workflow">Workflow Walkthrough</a>
-    <a href="#rules">Hold &amp; Release Rules</a>
-    <a href="#safety">AI Safety</a>
+  <nav class="nav-links">
+    <a href="https://github.com/errer441122">Portfolio Home</a>
+    <a href="https://errer441122.github.io/ai-visibility-audit-geo/">1. GEO Audit</a>
+    <a href="https://errer441122.github.io/ai-inbound-lead-router/">2. Lead Router</a>
+    <a href="https://errer441122.github.io/lifecycle-automation-lab/">4. CRM QA</a>
+    <a href="https://github.com/errer441122/ecommerce-cx-analytics">GitHub Repo &rarr;</a>
   </nav>
-  <a class="src" href="https://github.com/errer441122/ecommerce-cx-analytics">Repository on GitHub</a>
 </div></header>
 
 <main class="wrap" id="top">
   <section class="hero">
-    <p class="eyebrow">AI Automation &middot; Post-Purchase CX &amp; CRM Operations</p>
-    <h1>Stop sending promotional emails to customers with stuck parcels, 1-star reviews, or open support tickets.</h1>
-    <p class="lead">Two visual <strong>n8n</strong> blueprints bridging <strong>AfterShip / Sendcloud, Trustpilot, Zendesk, and Shopify</strong> directly into <strong>Klaviyo &amp; HubSpot</strong> Global Exclusion Segments &mdash; with human-in-the-loop AI triage and automatic post-cooldown release.</p>
-    <div class="actions">
+    <p class="kicker">Visual n8n Workflows &middot; Post-Purchase CX &amp; CRM Governance</p>
+    <h1>Stop sending promotional emails to customers with stuck parcels, 1-star reviews, or open tickets.</h1>
+    <p class="lead">Click any of the 4 customer incidents below to watch how two paired <strong>n8n</strong> workflows pause Klaviyo &amp; HubSpot promotions in real time, draft safe Zendesk notes for human agents, and automatically restore customers after cooldown.</p>
+    <div class="cta-row">
       <a class="btn" href="https://raw.githubusercontent.com/errer441122/ecommerce-cx-analytics/main/workflows/cx-promo-guard.n8n.json" download="cx-promo-guard.n8n.json">Download Promo Guard (.json)</a>
       <a class="btn ghost" href="https://raw.githubusercontent.com/errer441122/ecommerce-cx-analytics/main/workflows/cx-hold-release.n8n.json" download="cx-hold-release.n8n.json">Download Hold Release (.json)</a>
+      <a class="btn ghost" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/docs/sop-cx-crm-operations.md">Read CX/CRM Ops SOP</a>
+    </div>
+
+    <div class="compare">
+      <div class="cmp before">
+        <h2>Without This System</h2>
+        <ul>
+          <li>A customer waiting 10 days for a lost BRT parcel still gets a <strong>"Shop New Arrivals!"</strong> blast and an automated <strong>"Rate your order!"</strong> email.</li>
+          <li>1-star Trustpilot reviews and chargeback threats sit buried inside generic support queues.</li>
+          <li>One-off manual suppressions are forgotten, permanently shrinking the marketable CRM list.</li>
+        </ul>
+      </div>
+      <div class="cmp after">
+        <h2>With This Paired n8n + CRM System</h2>
+        <ul>
+          <li>Carrier exceptions, 1&ndash;2&#9733; reviews, and open tickets flip <code>cx_promo_hold = true</code> across <strong>Klaviyo &amp; HubSpot</strong> in seconds.</li>
+          <li><strong>Shopify Order Lookup</strong> resolves missing emails and flags VIPs (&ge;3 orders or &ge;&euro;300 LTV) + chargeback threats to <code>P0</code>.</li>
+          <li>AI writes a <strong>private Zendesk Internal Note only</strong> (never auto-sent); a daily 07:30 CET job releases holds after cooldown.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
-  <section class="card" id="workflow">
-    <h2>Interactive Workflow Walkthrough</h2>
-    <p>Inspect how an incoming carrier exception, negative review, or support ticket pauses marketing sends and escalates VIPs without ever auto-emailing an angry customer.</p>
-    <div class="flow-steps" id="steps"></div>
-    <div class="inspector" id="inspector"></div>
+  <!-- INTERACTIVE SIMULATOR -->
+  <section class="block" id="simulator">
+    <h2>Interactive Simulator: Watch 4 Real Post-Purchase Scenarios</h2>
+    <p class="subhead">Pick an incoming CX event below. See which stages fire, and inspect the exact updates inside <strong>Klaviyo / HubSpot</strong>, <strong>Zendesk (Internal Note)</strong>, and <strong>Slack</strong>.</p>
+
+    <div class="scenarios" id="scenarios" role="group" aria-label="CX incident scenarios"></div>
+    <div class="input-box" id="input-box"></div>
+    <div class="pipeline" id="pipeline"></div>
+    <div class="outputs" id="outputs"></div>
   </section>
 
-  <section class="card" id="rules">
-    <h2>Hold &rarr; Cooldown &rarr; Release State Machine</h2>
-    <p>Every suppressed contact carries an explicit reason and expiry rule so the daily 07:30 CET release workflow returns resolved customers to normal CRM flows cleanly.</p>
+  <!-- VISUAL STATE MACHINE -->
+  <section class="block" id="lifecycle">
+    <h2>Hold &rarr; Cooldown &rarr; Automatic Release Lifecycle</h2>
+    <p class="subhead">Suppressing unhappy buyers is only half the job. Without the companion daily release workflow, contacts stay excluded forever. Every hold follows four clear states:</p>
+
+    <div class="states">
+      <div class="st-card s-norm">
+        <small>State 1</small>
+        <h3>Eligible (Normal)</h3>
+        <p>Customer receives standard newsletters, promos, and post-purchase review invitations.</p>
+      </div>
+      <div class="st-card s-hold">
+        <small>State 2 &middot; Promo Guard</small>
+        <h3>Active Promo Hold</h3>
+        <p>Stuck parcel, 1&ndash;2&#9733; review, or open ticket immediately sets <code>cx_promo_hold = true</code> &amp; pauses review flows.</p>
+      </div>
+      <div class="st-card s-cool">
+        <small>State 3 &middot; Buffer</small>
+        <h3>Post-Fix Cooldown</h3>
+        <p>Even after delivery or ticket resolution, contact stays protected for <strong>7 days</strong> (late parcel) or <strong>30 days</strong> (1&ndash;2&#9733; review).</p>
+      </div>
+      <div class="st-card s-rel">
+        <small>State 4 &middot; 07:30 Job</small>
+        <h3>Automatic Release</h3>
+        <p>Daily 07:30 CET job verifies zero open tickets + expired cooldown and restores <code>cx_promo_hold = false</code> cleanly.</p>
+      </div>
+    </div>
+
     <div class="scroll">
       <table>
-        <thead><tr><th>Source Signal</th><th>Trigger Condition</th><th>CRM Action</th><th>Cooldown / Release Rule</th></tr></thead>
+        <thead><tr><th>Signal Source</th><th>Trigger Condition</th><th>CRM Suppression</th><th>Release Condition</th></tr></thead>
         <tbody>
-          <tr><td><strong>Carriers (AfterShip / Sendcloud)</strong></td><td><code>exception</code>, <code>lost</code>, <code>failed_attempt</code>, or late in transit</td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released <strong>7 days</strong> after confirmed delivery</td></tr>
-          <tr><td><strong>Trustpilot / Judge.me / Yotpo</strong></td><td>1&ndash;2 star review submitted</td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released after <strong>30-day</strong> cooldown</td></tr>
-          <tr><td><strong>Zendesk / HubSpot Tickets</strong></td><td>Status <code>new</code>, <code>open</code>, <code>pending</code>, or <code>hold</code></td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released once ticket status = <code>solved</code> / <code>closed</code></td></tr>
-          <tr><td><strong>Daily 07:30 CET Release Job</strong></td><td>Cooldown expired &amp; zero open tickets</td><td><span class="badge rel">RELEASE</span> <code>cx_promo_hold = false</code></td><td>Customer re-enters standard lifecycle flows</td></tr>
+          <tr><td><strong>Carriers (AfterShip / Sendcloud)</strong></td><td><code>exception</code>, <code>lost</code>, <code>failed_attempt</code>, or late in transit</td><td><span class="pill bad">HOLD</span> Promos + Reviews</td><td>Delivered + <strong>7-day</strong> cooldown</td></tr>
+          <tr><td><strong>Trustpilot / Judge.me / Yotpo</strong></td><td>1&ndash;2 star review posted</td><td><span class="pill bad">HOLD</span> Promos + Reviews</td><td><strong>30-day</strong> cooldown from review</td></tr>
+          <tr><td><strong>Zendesk / HubSpot Tickets</strong></td><td>Status <code>new</code>, <code>open</code>, <code>pending</code>, or <code>hold</code></td><td><span class="pill bad">HOLD</span> Promos + Reviews</td><td>Ticket marked <code>solved</code> / <code>closed</code></td></tr>
+          <tr><td><strong>Daily 07:30 CET Release Job</strong></td><td>Cooldown expired &amp; zero open tickets</td><td><span class="pill ok">RELEASED</span> Re-enters flows</td><td>Logged cleanly in CRM history</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <section class="card" id="safety">
-    <h2>Human-in-the-Loop AI Guardrails</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Risk</th><th>Guardrail Built Into Prompt &amp; Workflow</th></tr></thead>
-        <tbody>
-          <tr><td>AI sends tone-deaf reply directly to frustrated customer</td><td>Draft is written strictly as a <strong>private Zendesk Internal Note</strong> &mdash; a human agent edits and sends</td></tr>
-          <tr><td>AI promises unauthorized refunds or coupons</td><td>System prompt forbids monetary/refund promises; only acknowledges the issue and investigation</td></tr>
-          <tr><td>Chargeback or legal threat buried in standard queue</td><td>Keyword &amp; intent escalation forces <code>priority_tier = P0</code> + instant Slack alert to <code>#cx-vip-alerts</code></td></tr>
-          <tr><td>Carrier/Trustpilot export lacks customer email</td><td>Shopify Order Lookup resolves <code>order_id / Reference Id &rarr; email</code> + VIP LTV automatically</td></tr>
-        </tbody>
-      </table>
+  <!-- AI SAFETY GUARDRAILS -->
+  <section class="block" id="safety">
+    <h2>4 Human-in-the-Loop Guardrails Built Into the Workflow</h2>
+    <p class="subhead">Customer service is high-trust. Every AI step is bounded by hard workflow and prompt rules:</p>
+    <div class="grid-2">
+      <div class="rule-card">
+        <span class="pill warn">Zero Auto-Replies</span>
+        <h3>Drafts Are Private Internal Notes Only</h3>
+        <p>The workflow posts the AI empathy draft strictly as a yellow <strong>Zendesk Internal Note</strong>. A human agent always reviews, edits, and sends the final email.</p>
+      </div>
+      <div class="rule-card">
+        <span class="pill bad">Margin &amp; Policy Safe</span>
+        <h3>No Unauthorized Refunds or Coupons</h3>
+        <p>The prompt explicitly forbids promising money back, reshipments, or discount vouchers &mdash; the draft only acknowledges the issue and next step.</p>
+      </div>
+      <div class="rule-card">
+        <span class="pill bad">Instant Escalation</span>
+        <h3>Chargeback &amp; Legal Threats Force P0</h3>
+        <p>Any mention of chargeback, bank dispute, or legal action overrides standard LTV scoring and fires an immediate Slack alert to <code>#cx-vip-alerts</code>.</p>
+      </div>
+      <div class="rule-card">
+        <span class="pill ok">Identity Stitching</span>
+        <h3>Resolves Missing Emails via Shopify</h3>
+        <p>Carrier webhooks and Trustpilot exports often carry only an <code>order_id</code>. Shopify lookup resolves the email and lifetime spend automatically.</p>
+      </div>
     </div>
   </section>
 </main>
 
 <footer><div class="wrap">
-  <p>Visual n8n workflows, AI triage prompt, and CRM/CX SOP by Riccardo Capanna. Full files in <a href="https://github.com/errer441122/ecommerce-cx-analytics">github.com/errer441122/ecommerce-cx-analytics</a>.</p>
+  <p>Two importable n8n blueprints, AI triage prompt, Klaviyo/HubSpot templates, and CX/CRM Operations SOP &mdash; <a href="https://github.com/errer441122/ecommerce-cx-analytics">inspect full repository on GitHub</a>.</p>
 </div></footer>
 
 <script>
-const NODES = [
+const SCENARIOS = [
   {
-    step: "Step 1-2", title: "Unified Intake + Shopify VIP Lookup",
-    desc: "Receives carrier exceptions, 1-2 star Trustpilot reviews, or Zendesk tickets. Looks up order_id in Shopify to resolve missing emails and check VIP status (3+ orders or >=300 EUR LTV).",
-    sample: '{\n  "source": "aftership_webhook",\n  "order_id": "#3003",\n  "carrier": "BRT",\n  "status": "exception",\n  "resolved_email": "vip.customer@domain.it",\n  "shopify_ltv_eur": 585.00,\n  "is_vip": true\n}'
+    id: "vip-parcel",
+    badge: "P0 · VIP Parcel Stuck",
+    badgeCls: "bad",
+    title: "VIP + Stuck BRT Parcel (#3003)",
+    subtitle: "€585 LTV · Promos paused + Zendesk note + VIP Slack",
+    input: { source: "AfterShip Webhook (BRT)", order: "#3003 (no email in carrier payload)", detail: "Status: exception — parcel stalled at Milan hub 4 days past promised delivery." },
+    steps: [
+      { k: "1. Signal", t: "Carrier Exception", d: "BRT flagged order #3003 stuck", s: "bad" },
+      { k: "2. Shopify", t: "VIP Resolved", d: "vip.customer@domain.it · 5 orders · €585", s: "warn" },
+      { k: "3. AI Triage", t: "P0 · Logistics", d: "Italian empathy draft + 14d hold", s: "bad" },
+      { k: "4. Klaviyo/HS", t: "Promos PAUSED", d: "Added to Global CX Hold segment", s: "bad" },
+      { k: "5. ZD + Slack", t: "Note + VIP Ping", d: "Private draft + #cx-vip-alerts", s: "bad" }
+    ],
+    crmPaused: true,
+    crmRows: [
+      ["Customer", "vip.customer@domain.it"],
+      ["VIP Status", "Yes (5 orders · €585 LTV)"],
+      ["Hold Reason", "carrier_exception (#3003 BRT)"],
+      ["Hold Expiry", "Delivered + 7d cooldown"],
+      ["Klaviyo Segment", "Global Exclusion — Active CX Hold"]
+    ],
+    zdBanner: "PRIVATE INTERNAL NOTE ONLY — NEVER AUTO-SENT",
+    zdMeta: [["Priority", "P0", "bad"], ["Team", "logistics_cs", "warn"], ["Refund Promised", "None (Blocked)", "ok"]],
+    zdText: "\"Ciao Giulia, abbiamo visto che la spedizione #3003 con BRT risulta ferma in transito e abbiamo già aperto una verifica prioritaria con il corriere. Ti aggiorniamo personalmente entro oggi pomeriggio.\"",
+    slackType: "active",
+    slackHeader: "Instant P0 Alert",
+    slackTitle: "P0 VIP CX Alert — Promos & Reviews PAUSED",
+    slackLines: [
+      "Customer: vip.customer@domain.it (5 orders · €585 LTV)",
+      "Issue: BRT carrier exception on order #3003 · Owner: logistics_cs",
+      "CRM: Klaviyo & HubSpot Global Exclusion active immediately.",
+      "Zendesk: Private Italian empathy draft ready for agent review."
+    ],
+    slackNote: "Human agent edits & sends reply in <1 minute."
   },
   {
-    step: "Step 3", title: "AI Structured Triage & Safe Draft",
-    desc: "Classifies theme, assigns P0-P3 priority and owner team, and writes a short empathetic draft in the customer's language without ever promising unapproved refunds.",
-    sample: '{\n  "theme": "not_received",\n  "priority_tier": "P0",\n  "owner_team": "logistics_cs",\n  "hold_days": 14,\n  "internal_reply_draft": "Ciao Giulia, abbiamo visto che la spedizione #3003 con BRT risulta bloccata e abbiamo gia aperto una verifica prioritaria con il corriere. Ti aggiorniamo entro oggi pomeriggio.",\n  "escalation_flags": ["vip_high_ltv"]\n}'
+    id: "chargeback",
+    badge: "P0 · Chargeback Threat",
+    badgeCls: "bad",
+    title: "1★ Trustpilot + Chargeback (#3008)",
+    subtitle: "30-day promo hold · Escalated even without VIP LTV",
+    input: { source: "Trustpilot 1-Star Webhook", order: "#3008 (Reference ID)", detail: "\"Pacco arrivato danneggiato e nessuno risponde. Se non risolvete oggi chiedo il chargeback alla banca.\"" },
+    steps: [
+      { k: "1. Signal", t: "1★ Review", d: "Negative review on order #3008", s: "bad" },
+      { k: "2. Shopify", t: "Email Resolved", d: "marco.b@domain.it · 2 orders · €240", s: "ok" },
+      { k: "3. AI Triage", t: "P0 · Chargeback", d: "Legal/chargeback override -> 30d hold", s: "bad" },
+      { k: "4. Klaviyo/HS", t: "30d Promo Hold", d: "Promos & review requests blocked", s: "bad" },
+      { k: "5. ZD + Slack", t: "Note + P0 Alert", d: "De-escalation draft + Lead CS ping", s: "bad" }
+    ],
+    crmPaused: true,
+    crmRows: [
+      ["Customer", "marco.b@domain.it"],
+      ["VIP Status", "Standard (€240) -> P0 Override"],
+      ["Hold Reason", "negative_review_1star; chargeback_risk"],
+      ["Hold Expiry", "30 days from review date"],
+      ["HubSpot List", "CX Promo Hold (Active)"]
+    ],
+    zdBanner: "PRIVATE INTERNAL NOTE ONLY — NO UNAUTHORIZED REFUND",
+    zdMeta: [["Priority", "P0 (Chargeback)", "bad"], ["Team", "senior_cs_lead", "bad"], ["Refund Promised", "None (Agent decides)", "ok"]],
+    zdText: "\"Ciao Marco, ci dispiace sinceramente per le condizioni del pacco #3008 e per l'attesa. Ho preso in carico personalmente la tua segnalazione con massima priorità: puoi risponderci con una foto dell'articolo così definiamo subito la soluzione migliore?\"",
+    slackType: "active",
+    slackHeader: "Instant P0 Alert",
+    slackTitle: "P0 Chargeback Risk — 1★ Trustpilot Review (#3008)",
+    slackLines: [
+      "Customer: marco.b@domain.it (€240 LTV) · Flag: chargeback_risk",
+      "CRM: Promos & automated review requests locked for 30 days.",
+      "Zendesk: Private de-escalation draft ready (zero unapproved refund promises)."
+    ],
+    slackNote: "Prevents bank dispute & saves €15–€25 chargeback fee."
   },
   {
-    step: "Step 4-5", title: "Klaviyo & HubSpot Global Promo Hold",
-    desc: "Updates profile properties (cx_promo_hold=true, cx_review_request_hold=true) in real time so every promotional campaign and automated review flow excludes the contact automatically.",
-    sample: 'Klaviyo Profile Update -> cx_promo_hold: true, cx_review_request_hold: true\nHubSpot Contact Upsert -> CX Promo Hold: Yes\nSegment: "Global Exclusion - Active CX Hold" updated immediately'
+    id: "non-vip",
+    badge: "P1 · Quiet Hold",
+    badgeCls: "warn",
+    title: "Non-VIP Late Parcel (#3004)",
+    subtitle: "€89 LTV · Promos paused quietly · Zero VIP Slack noise",
+    input: { source: "Sendcloud Webhook (GLS)", order: "#3004", detail: "Status: late_in_transit — 2 days past estimated delivery date, still scanning in network." },
+    steps: [
+      { k: "1. Signal", t: "Late Parcel", d: "GLS shipment #3004 delayed 2d", s: "warn" },
+      { k: "2. Shopify", t: "Standard Buyer", d: "late.parcel@domain.it · 1 order · €89", s: "ok" },
+      { k: "3. AI Triage", t: "P1 · Standard", d: "Logistics queue · 7d post-delivery hold", s: "warn" },
+      { k: "4. Klaviyo/HS", t: "Promos PAUSED", d: "Protected from promo & review blasts", s: "warn" },
+      { k: "5. ZD + Slack", t: "Zendesk Only", d: "No VIP Slack interruption", s: "skip" }
+    ],
+    crmPaused: true,
+    crmRows: [
+      ["Customer", "late.parcel@domain.it"],
+      ["VIP Status", "No (1 order · €89 LTV)"],
+      ["Hold Reason", "late_in_transit (#3004 GLS)"],
+      ["Hold Expiry", "Delivered + 7d cooldown"],
+      ["Klaviyo Segment", "Global Exclusion — Active CX Hold"]
+    ],
+    zdBanner: "PRIVATE INTERNAL NOTE ONLY — STANDARD LOGISTICS QUEUE",
+    zdMeta: [["Priority", "P1", "warn"], ["Team", "logistics_cs", "warn"], ["Slack Alert", "Suppressed (Non-P0)", "ok"]],
+    zdText: "\"Order #3004 (GLS) is 2 days past promised delivery. Promo & review emails are paused automatically. Suggested proactive check-in ready if parcel does not scan delivered within 24h.\"",
+    slackType: "quiet",
+    slackHeader: "Zero channel noise",
+    slackTitle: "No Slack notification sent",
+    slackLines: [
+      "P1 standard delays update Klaviyo, HubSpot, and Zendesk automatically without flooding #cx-vip-alerts.",
+      "This ensures VIP & chargeback alerts never suffer alert fatigue."
+    ],
+    slackNote: ""
   },
   {
-    step: "Step 6-8", title: "Zendesk Internal Note + P0 Slack Alert",
-    desc: "Posts the AI draft strictly as a private internal note in Zendesk for human review and triggers an instant #cx-vip-alerts Slack message for P0 cases.",
-    sample: 'Slack #cx-vip-alerts:\nP0 VIP CX Alert - Promos & Review Requests PAUSED\nCustomer: vip.customer@domain.it (LTV 585 EUR)\nTheme: not_received | Owner: logistics_cs\nInternal draft note ready in Zendesk.'
+    id: "release",
+    badge: "07:30 CET · Auto Release",
+    badgeCls: "ok",
+    title: "Resolved + Cooldown Done (#3006)",
+    subtitle: "Delivered 7 days ago & ticket solved -> Restored to CRM",
+    input: { source: "Daily 07:30 CET Release Workflow", order: "#3006 (Delivered Day -7)", detail: "Carrier status = delivered (7 days ago) · Zendesk ticket #8412 = solved · No open reviews." },
+    steps: [
+      { k: "1. Schedule", t: "07:30 CET Run", d: "Scans active CX Hold profiles", s: "ok" },
+      { k: "2. Verify", t: "Ticket Solved", d: "Zero open tickets & parcel delivered", s: "ok" },
+      { k: "3. Cooldown", t: "7 Days Cleared", d: "cx_hold_until timestamp passed", s: "ok" },
+      { k: "4. Klaviyo/HS", t: "HOLD RELEASED", d: "cx_promo_hold set back to false", s: "ok" },
+      { k: "5. Audit Log", t: "Cleanly Logged", d: "Marketable database restored", s: "ok" }
+    ],
+    crmPaused: false,
+    crmRows: [
+      ["Customer", "resolved.customer@domain.it"],
+      ["Previous Hold", "late_in_transit (#3006 BRT)"],
+      ["Verification", "Delivered +7d · Ticket Solved"],
+      ["New Status", "released_after_cooldown"],
+      ["Klaviyo Segment", "Removed from Global CX Hold"]
+    ],
+    zdBanner: "AUDIT RECORD — NO NEW TICKET CREATED",
+    zdMeta: [["Ticket #8412", "Solved", "ok"], ["Hold Released", "Automatic", "ok"], ["CRM Eligibility", "Restored", "ok"]],
+    zdText: "\"Automated 07:30 CET release log: order #3006 confirmed delivered 7 days ago with zero open support tickets. Customer cleanly returned to standard Klaviyo & HubSpot lifecycle flows.\"",
+    slackType: "ok",
+    slackHeader: "Daily digest only",
+    slackTitle: "Daily Release Summary — 14 Contacts Restored",
+    slackLines: [
+      "resolved.customer@domain.it (#3006) + 13 other resolved buyers cleared cooldown today.",
+      "Marketable database stays healthy without manual list cleanup."
+    ],
+    slackNote: "Prevents silent audience decay over time."
   }
 ];
-const stepsEl = document.getElementById("steps");
-const inspEl = document.getElementById("inspector");
-function show(idx) {
-  [...stepsEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
-  const n = NODES[idx];
-  inspEl.innerHTML = `<h3>${n.step}: ${n.title}</h3><p>${n.desc}</p><pre>${n.sample.replace(/</g,"&lt;")}</pre>`;
+
+const scEl = document.getElementById("scenarios");
+const inEl = document.getElementById("input-box");
+const pipeEl = document.getElementById("pipeline");
+const outEl = document.getElementById("outputs");
+
+function render(idx) {
+  const s = SCENARIOS[idx];
+  [...scEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
+
+  inEl.innerHTML = `
+    <div><strong>Trigger Source</strong> ${s.input.source}</div>
+    <div><strong>Order</strong> <code>${s.input.order}</code></div>
+    <div><strong>Event Detail</strong> ${s.input.detail}</div>
+  `;
+
+  pipeEl.innerHTML = s.steps.map(st => `
+    <div class="step ${st.s}">
+      <small>${st.k}</small>
+      <b>${st.t}</b>
+      <p>${st.d}</p>
+    </div>
+  `).join("");
+
+  const stateCls = s.crmPaused ? "paused" : "live";
+  const promoLabel = s.crmPaused ? "PAUSED (Hold ON)" : "ELIGIBLE (Active)";
+  const revLabel = s.crmPaused ? "PAUSED (Blocked)" : "ELIGIBLE (Active)";
+  const crmRows = s.crmRows.map(([k, v]) => `<div class="kv-row"><span>${k}</span><strong>${v}</strong></div>`).join("");
+  const zdPills = s.zdMeta.map(([k, v, cls]) => `<span class="pill ${cls}">${k}: ${v}</span>`).join("");
+  const slLines = s.slackLines.map(l => `<div>${l}</div>`).join("");
+
+  outEl.innerHTML = `
+    <div class="mock">
+      <div class="mock-head"><span><i class="dot" style="background:${s.crmPaused ? "var(--bad)" : "var(--ok)"}"></i>Klaviyo &amp; HubSpot Status</span><span>${s.crmPaused ? "Protected" : "Restored"}</span></div>
+      <div class="mock-body">
+        <div class="status-grid">
+          <div class="status-box ${stateCls}"><small>Promo Campaigns</small><strong>${promoLabel}</strong></div>
+          <div class="status-box ${stateCls}"><small>Review Requests</small><strong>${revLabel}</strong></div>
+        </div>
+        <div class="kv">${crmRows}</div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-head"><span><i class="dot" style="background:var(--zd-bd)"></i>Zendesk &middot; Agent View</span><span>Human-in-the-loop</span></div>
+      <div class="mock-body">
+        <div class="zd-banner">${s.zdBanner}</div>
+        <div class="zd-meta">${zdPills}</div>
+        <div class="zd-draft">${s.zdText}</div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="mock-head"><span><i class="dot" style="background:#38bdf8"></i>Slack &middot; #cx-vip-alerts</span><span>${s.slackHeader}</span></div>
+      <div class="slack-card">
+        <div>
+          <div class="slack-meta">n8n CX Promo Guard &middot; just now</div>
+          <div class="slack-msg ${s.slackType}">
+            <strong>${s.slackTitle}</strong>
+            ${slLines}
+          </div>
+        </div>
+        ${s.slackNote ? `<div class="slack-note">${s.slackNote}</div>` : ""}
+      </div>
+    </div>
+  `;
 }
-NODES.forEach((n, i) => {
+
+SCENARIOS.forEach((s, i) => {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "node-btn";
-  b.innerHTML = `<small>${n.step}</small><b>${n.title}</b>`;
-  b.addEventListener("click", () => show(i));
-  stepsEl.append(b);
+  b.type = "button"; b.className = "sc-btn";
+  b.innerHTML = `<span class="pill ${s.badgeCls}">${s.badge}</span><b>${s.title}</b><span>${s.subtitle}</span>`;
+  b.addEventListener("click", () => render(i));
+  scEl.append(b);
 });
-show(0);
+render(0);
 </script>
 </body>
 </html>
