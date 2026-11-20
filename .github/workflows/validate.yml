@@ -11,9 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify both n8n workflow blueprints and documentation exist
+      - name: Verify n8n workflow blueprints, VIP/resolved_email fixes, and documentation
         run: |
-          python3 -c "import json; w1=json.load(open('workflows/cx-promo-guard.n8n.json')); w2=json.load(open('workflows/cx-hold-release.n8n.json')); assert len(w1['nodes'])==10 and len(w2['nodes'])==6"
+          python3 - <<'PY'
+          import json
+          w1 = json.load(open('workflows/cx-promo-guard.n8n.json'))
+          w2 = json.load(open('workflows/cx-hold-release.n8n.json'))
+          err = json.load(open('workflows/error-notifier.n8n.json'))
+          assert len(w1['nodes']) == 10 and len(w2['nodes']) == 6 and len(err['nodes']) == 2
+          guard = [n for n in w1['nodes'] if 'Is P0 Critical or VIP' in n['name']][0]
+          conds = guard['parameters']['conditions']['conditions']
+          assert len(conds) == 2 and guard['parameters']['conditions']['combinator'] == 'or'
+          kl = [n for n in w1['nodes'] if 'Klaviyo:' in n['name']][0]
+          assert 'resolved_email' in kl['parameters']['jsonBody']
+          PY
           test -f prompts/cx-triage-and-draft-prompt.md
           test -f docs/state-machine-and-crm-rules.md
           test -f docs/sop-cx-crm-operations.md

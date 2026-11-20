@@ -2,9 +2,11 @@
 
 An **n8n + AI Triage + Klaviyo / HubSpot / Zendesk / Shopify** automation blueprint that stops promotional emails and automated review requests from ever reaching customers with a delayed parcel, a 1–2 star Trustpilot review, or an open support ticket — and automatically releases the hold once the issue is resolved.
 
-**[Explore the interactive workflow walkthrough](https://errer441122.github.io/ecommerce-cx-analytics/)** · **[Download Promo Guard n8n blueprint](workflows/cx-promo-guard.n8n.json)** · **[Download Hold Release n8n blueprint](workflows/cx-hold-release.n8n.json)**
+**[Explore the interactive workflow walkthrough](https://errer441122.github.io/cx-crm-promo-guard/)** · **[Download Promo Guard blueprint](workflows/cx-promo-guard.n8n.json)** · **[Download Hold Release blueprint](workflows/cx-hold-release.n8n.json)** · **[Error Notifier](workflows/error-notifier.n8n.json)**
 
-[![The walkthrough page: how long promotions stay paused for each kind of incident](assets/page.png)](https://errer441122.github.io/ecommerce-cx-analytics/)
+[![The walkthrough page: how long promotions stay paused for each kind of incident](assets/page.png)](https://errer441122.github.io/cx-crm-promo-guard/)
+
+> **Live Testing & Scope:** Importable 10-node real-time Promo Guard + 6-node daily Hold Release + 2-node standalone Error Workflow designed for Klaviyo (`revision: 2026-10-15`), HubSpot Free CRM, Shopify Dev Store (`orders.json` filtered by `order_id`), and Slack (`#cx-vip-alerts`). Carrier/Trustpilot triggers use simulated webhook payloads; Zendesk internal note node can run on a sandbox trial or swap 1-for-1 with HubSpot Tickets.
 
 ---
 
@@ -17,20 +19,24 @@ Shipping platforms, Trustpilot, and Zendesk know immediately when a customer is 
 
 ---
 
-## System Architecture (Two Companion n8n Workflows)
+## System Architecture (Paired n8n Workflows + Standalone Error Workflow)
 
 ### Workflow 1: Real-Time Hold, AI Triage & VIP Escalation ([`workflows/cx-promo-guard.n8n.json`](workflows/cx-promo-guard.n8n.json))
 
 ```mermaid
 flowchart LR
-    W["1. Webhook: AfterShip / Sendcloud / Trustpilot / Zendesk"] --> SH["2. Shopify Order & VIP LTV Lookup"]
-    SH --> AI["3. AI Structured Triage + Empathy Draft (JSON)"]
-    AI --> KL["4. Klaviyo: cx_promo_hold = true"]
-    AI --> HS["5. HubSpot: CX Promo Hold = Yes"]
-    AI --> ZD["6. Zendesk: Private Internal Note (Human Review Only)"]
-    KL --> G{"7. P0 Critical or VIP?"}
-    G -- "Yes" --> SL["8. Slack #cx-vip-alerts"]
+    W["1. Webhook: AfterShip / Sendcloud / Trustpilot / Zendesk"] --> SH["2. Shopify Filtered Order Lookup (by order_id)"]
+    SH --> R["3. Resolve Email & VIP Status (orders>=3 or LTV>=300)"]
+    R --> AI["4. AI Triage + Safe Draft (JSON)"]
+    AI --> P["5. Parse AI Output (Safe Defaults)"]
+    P --> KL["6. Klaviyo: cx_promo_hold = true (rev 2026-10-15)"]
+    P --> HS["7. HubSpot: CX Promo Hold = Yes"]
+    P --> ZD["8. Zendesk: Private Internal Note (Human Review Only)"]
+    KL --> G{"9. P0 Critical OR VIP?"}
+    G -- "Yes" --> SL["10. Slack #cx-vip-alerts"]
 ```
+
+*Global safety net:* link [`workflows/error-notifier.n8n.json`](workflows/error-notifier.n8n.json) under **Settings → Error Workflow** in n8n so any API failure alerts `#martech-alerts`.
 
 ### Workflow 2: Daily Cooldown & Automatic Release ([`workflows/cx-hold-release.n8n.json`](workflows/cx-hold-release.n8n.json))
 
@@ -54,8 +60,9 @@ Runs daily at **07:30 CET** so resolved customers are never trapped permanently 
 
 | Path | Content |
 | --- | --- |
-| `workflows/cx-promo-guard.n8n.json` | 10-node real-time n8n blueprint (Hold + AI Triage + Zendesk Internal Note + VIP Slack Alert) |
-| `workflows/cx-hold-release.n8n.json` | 6-node scheduled n8n blueprint handling automatic cooldown release |
+| `workflows/cx-promo-guard.n8n.json` | 10-node real-time n8n blueprint (Filtered Shopify lookup, `resolved_email` + VIP OR escalation, AI Triage, Klaviyo rev `2026-10-15`, HubSpot Hold, Zendesk Internal Note) |
+| `workflows/cx-hold-release.n8n.json` | 6-node scheduled n8n blueprint handling automatic cooldown release (`revision: 2026-10-15`) |
+| `workflows/error-notifier.n8n.json` | Standalone 2-node Error Workflow routing execution failures to `#martech-alerts` |
 | `prompts/cx-triage-and-draft-prompt.md` | Priority rubric (`P0`–`P3`), multilingual triage prompt & brand-safety rules |
 | `docs/state-machine-and-crm-rules.md` | State machine (`HOLD → COOLDOWN → RELEASE`) & Klaviyo/HubSpot segment definitions |
 | `docs/sop-cx-crm-operations.md` | 1-page daily CRM + Customer Care SOP |

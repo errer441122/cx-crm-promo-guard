@@ -224,7 +224,7 @@ footer a:hover { color: var(--accent); }
     <a class="proj" href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
     <a class="proj" href="https://errer441122.github.io/ai-inbound-lead-router/">Lead router</a>
     <a class="proj" href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
-    <a href="https://github.com/errer441122/ecommerce-cx-analytics">GitHub repo</a>
+    <a href="https://github.com/errer441122/cx-crm-promo-guard">GitHub repo</a>
   </nav>
 </div></header>
 
@@ -303,12 +303,12 @@ Review flow filter
   <section class="wrap band" id="files">
     <h2>The files</h2>
     <div class="files">
-      <a class="file big" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/workflows/cx-promo-guard.n8n.json"><span class="p">workflows/cx-promo-guard.n8n.json</span><b>Promo Guard workflow</b><span>Webhook, Shopify lookup, AI triage, Klaviyo and HubSpot holds, Zendesk note, P0 alert. Import it into n8n.</span></a>
-      <a class="file" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/workflows/cx-hold-release.n8n.json"><span class="p">workflows/cx-hold-release.n8n.json</span><b>Hold Release workflow</b><span>The daily 07:30 check</span></a>
-      <a class="file" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/prompts/cx-triage-and-draft-prompt.md"><span class="p">prompts/cx-triage-and-draft-prompt.md</span><b>Triage prompt</b><span>P0 to P3 rubric and brand-safety rules</span></a>
-      <a class="file" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/docs/state-machine-and-crm-rules.md"><span class="p">docs/state-machine-and-crm-rules.md</span><b>Hold rules</b><span>Hold windows and segment definitions</span></a>
-      <a class="file" href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/docs/sop-cx-crm-operations.md"><span class="p">docs/sop-cx-crm-operations.md</span><b>Daily routine</b><span>10 minutes for CRM and Customer Care</span></a>
-      <a class="file strip" href="https://github.com/errer441122/ecommerce-cx-analytics/tree/main/templates"><span class="p">templates/</span><b>CSV fallback</b><span>Klaviyo and HubSpot import templates</span></a>
+      <a class="file big" href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/workflows/cx-promo-guard.n8n.json"><span class="p">workflows/cx-promo-guard.n8n.json</span><b>Promo Guard workflow</b><span>Webhook, Shopify lookup, AI triage, Klaviyo and HubSpot holds, Zendesk note, P0 alert. Import it into n8n.</span></a>
+      <a class="file" href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/workflows/cx-hold-release.n8n.json"><span class="p">workflows/cx-hold-release.n8n.json</span><b>Hold Release workflow</b><span>The daily 07:30 check</span></a>
+      <a class="file" href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/prompts/cx-triage-and-draft-prompt.md"><span class="p">prompts/cx-triage-and-draft-prompt.md</span><b>Triage prompt</b><span>P0 to P3 rubric and brand-safety rules</span></a>
+      <a class="file" href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/docs/state-machine-and-crm-rules.md"><span class="p">docs/state-machine-and-crm-rules.md</span><b>Hold rules</b><span>Hold windows and segment definitions</span></a>
+      <a class="file" href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/docs/sop-cx-crm-operations.md"><span class="p">docs/sop-cx-crm-operations.md</span><b>Daily routine</b><span>10 minutes for CRM and Customer Care</span></a>
+      <a class="file strip" href="https://github.com/errer441122/cx-crm-promo-guard/tree/main/templates"><span class="p">templates/</span><b>CSV fallback</b><span>Klaviyo and HubSpot import templates</span></a>
     </div>
   </section>
 </main>
@@ -324,7 +324,7 @@ Review flow filter
 
 <script>
 const BASE = location.hostname.endsWith("github.io")
-  ? "https://raw.githubusercontent.com/errer441122/ecommerce-cx-analytics/main/"
+  ? "https://raw.githubusercontent.com/errer441122/cx-crm-promo-guard/main/"
   : "../";
 
 // Example incidents. The AI answers are examples of the JSON the triage node asks for.
@@ -333,6 +333,7 @@ const INCIDENTS = [
     source: "AfterShip webhook", tag: "P0", title: "VIP parcel stuck at the Milan hub",
     quote: "Order #3003 with BRT, 4 days past the promised date.",
     event: { email: "vip.customer@example.com", ticket_id: 48121, source: "aftership", order: "#3003", carrier: "BRT", status: "exception" },
+    customer: { orders_count: 5, total_spent: 585, is_vip: true },
     ai: { theme: "delivery_delay", priority_tier: "P0", owner_team: "logistics_cs", hold_days: 14, escalation_flags: ["vip_customer"],
       internal_reply_draft: "Ciao, la spedizione #3003 con BRT risulta ferma in transito. Abbiamo aperto una verifica prioritaria con il corriere e ti aggiorniamo entro oggi pomeriggio." },
     why: "Five orders and 585 euro spent: the rubric makes a VIP with a stuck parcel P0.",
@@ -341,6 +342,7 @@ const INCIDENTS = [
     source: "Trustpilot webhook", tag: "P0", title: "1-star review with a chargeback threat",
     quote: "\"Pacco arrivato danneggiato e nessuno risponde. Se non risolvete oggi chiedo il chargeback alla banca.\"",
     event: { email: "review.3008@example.com", ticket_id: 48130, source: "trustpilot", order: "#3008", rating: 1 },
+    customer: { orders_count: 2, total_spent: 240, is_vip: false },
     ai: { theme: "product_quality", priority_tier: "P0", owner_team: "logistics_cs", hold_days: 30, escalation_flags: ["chargeback_or_legal_risk"],
       internal_reply_draft: "Ci dispiace per le condizioni del pacco #3008. Ho preso in carico la segnalazione con priorita: puoi mandarci una foto dell'articolo, cosi definiamo subito come procedere?" },
     why: "Not a VIP, but the word chargeback forces P0.",
@@ -349,6 +351,7 @@ const INCIDENTS = [
     source: "Sendcloud webhook", tag: "P1", title: "Late parcel, regular customer",
     quote: "Order #3004 with GLS, 2 days past the estimated date, still scanning.",
     event: { email: "late.parcel@example.com", ticket_id: 48133, source: "sendcloud", order: "#3004", carrier: "GLS", status: "late_in_transit" },
+    customer: { orders_count: 1, total_spent: 89, is_vip: false },
     ai: { theme: "delivery_delay", priority_tier: "P1", owner_team: "logistics_cs", hold_days: 7, escalation_flags: [],
       internal_reply_draft: "Hi, your order #3004 is two days later than we promised. We are checking with GLS today and will write again as soon as it scans for delivery." },
     why: "One order, no dispute words: P1, handled in the normal queue.",
@@ -357,6 +360,7 @@ const INCIDENTS = [
     source: "Zendesk webhook", tag: "P2", title: "Ticket about a missing refund",
     quote: "\"I returned the jacket ten days ago and still have no refund.\"",
     event: { email: "returns.3011@example.com", ticket_id: 48140, source: "zendesk", order: "#3011", status: "open" },
+    customer: { orders_count: 1, total_spent: 145, is_vip: false },
     ai: { theme: "customer_service", priority_tier: "P2", owner_team: "customer_service", hold_days: 7, escalation_flags: [],
       internal_reply_draft: "Hi, thank you for your patience. I have checked your return for order #3011 and passed it to our payments team; I will confirm the status by tomorrow." },
     why: "An open service ticket: promos wait, nobody is paged.",
@@ -373,9 +377,12 @@ const nodeBy = (wf, word) => wf && wf.nodes.find((n) => n.name.toLowerCase().inc
 // Fill an n8n template with the example values of an incident.
 function fill(template, inc) {
   return clean(String(template).replace(/^=/, "").replace(/\{\{([\s\S]*?)\}\}/g, (_, x) => {
-    const k = (x.match(/\.(email|theme|priority_tier|owner_team|internal_reply_draft)\b/) || [])[1];
-    if (k === "email") return inc.event.email;
-    if (k) return inc.ai[k];
+    const k = (x.match(/\.(resolved_email|is_vip|order_id|orders_count|total_spent|hold_days|email|theme|priority_tier|owner_team|internal_reply_draft)\b/) || [])[1];
+    if (k === "resolved_email" || k === "email") return inc.event.email;
+    if (k === "order_id") return inc.event.order;
+    if (k === "is_vip") return inc.customer.is_vip ? "Yes" : "No";
+    if (k === "orders_count" || k === "total_spent") return String(inc.customer[k]);
+    if (k && k in inc.ai) return String(inc.ai[k]);
     return "...";
   }).replace(/:[a-z_]+:\s*/g, ""));
 }
@@ -422,14 +429,15 @@ function select(i) {
   const draftAt = rest.findIndex((l) => /suggested/i.test(l));
   steps.push(`<li class="step"><span class="dot"></span><h3>A private note for the agent<small>ticket ${inc.event.ticket_id}</small></h3><div class="note-card">${zd ? `<div class="meta">${esc(head || "")}</div>${rest.slice(0, draftAt).filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join("")}<p class="draft"><strong>${esc(rest[draftAt] || "")}</strong><br>${esc(rest.slice(draftAt + 1).join(" "))}</p>` : "<p>Read from the workflow file.</p>"}</div><p class="ex">Internal only. The customer sees nothing until an agent sends a reply.</p></li>`);
 
-  const sl = nodeBy(GUARD, "P0 VIP Escalation");
-  steps.push(p0 && sl
-    ? `<li class="step"><span class="dot"></span><h3>Alert in ${esc(sl.parameters.channel)}<small>P0 only</small></h3><div class="note-card">${mrkdwn(fill(sl.parameters.text, inc))}</div></li>`
-    : `<li class="step quiet"><span class="dot"></span><h3>No Slack alert<small>${esc(inc.ai.priority_tier)}</small></h3><p>Only P0 posts to <code>#cx-vip-alerts</code>, so the channel stays worth reading.</p></li>`);
+  const sl = nodeBy(GUARD, "Slack: Instant");
+  const alertOn = p0 || inc.customer.is_vip;
+  steps.push(alertOn && sl
+    ? `<li class="step"><span class="dot"></span><h3>Alert in ${esc(sl.parameters.channel)}<small>P0 or VIP</small></h3><div class="note-card">${mrkdwn(fill(sl.parameters.text, inc))}</div></li>`
+    : `<li class="step quiet"><span class="dot"></span><h3>No Slack alert<small>${esc(inc.ai.priority_tier)}</small></h3><p>Only P0 or VIP incidents post to <code>#cx-vip-alerts</code>, so the channel stays worth reading.</p></li>`);
 
   $("#thread").innerHTML = steps.join("");
   $("#thread").querySelectorAll(".step").forEach((s, j) => (s.style.animationDelay = j * 70 + "ms"));
-  paint($("#guard-canvas"), GUARD, p0 ? ["Webhook", "Shopify", "AI: Triage", "Klaviyo: Set", "HubSpot: Set", "Zendesk: Add", "Guard", "Slack: Instant"] : ["Webhook", "Shopify", "AI: Triage", "Klaviyo: Set", "HubSpot: Set", "Zendesk: Add", "Guard"], p0 ? "Slack: Instant" : "Guard");
+  paint($("#guard-canvas"), GUARD, alertOn ? ["Webhook", "Shopify", "Resolve Customer Email", "AI: Triage", "Parse AI Triage", "Klaviyo: Set", "HubSpot: Set", "Zendesk: Add", "Guard", "Slack: Instant"] : ["Webhook", "Shopify", "Resolve Customer Email", "AI: Triage", "Parse AI Triage", "Klaviyo: Set", "HubSpot: Set", "Zendesk: Add", "Guard"], alertOn ? "Slack: Instant" : "Guard");
 }
 
 // ---- release check (mirrors the IF node: no open tickets AND window over) ----
@@ -455,7 +463,7 @@ function verdict() {
 const NODE_W = 96;
 function shortName(name) {
   const i = name.indexOf(": ");
-  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\(JSON\)/, ""));
+  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Safe Defaults|Human-in-the-Loop Draft)\)/g, ""));
 }
 function kind(n) {
   const t = n.type.split(".").pop();
@@ -510,7 +518,7 @@ function paint(el, wf, words, endWord, endWord2) {
 }
 
 const load = (f) => fetch(BASE + "workflows/" + f).then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))));
-const fail = (el, f) => { el.innerHTML = `<p class="graph-msg">The workflow file did not load. <a href="https://github.com/errer441122/ecommerce-cx-analytics/blob/main/workflows/${f}">Open it on GitHub</a>.</p>`; };
+const fail = (el, f) => { el.innerHTML = `<p class="graph-msg">The workflow file did not load. <a href="https://github.com/errer441122/cx-crm-promo-guard/blob/main/workflows/${f}">Open it on GitHub</a>.</p>`; };
 load("cx-promo-guard.n8n.json").then((wf) => { GUARD = wf; draw($("#guard-canvas"), wf, 720); select(current); }).catch(() => fail($("#guard-canvas"), "cx-promo-guard.n8n.json"));
 load("cx-hold-release.n8n.json").then((wf) => { RELEASE = wf; draw($("#release-canvas"), wf, 600); verdict(); }).catch(() => fail($("#release-canvas"), "cx-hold-release.n8n.json"));
 
