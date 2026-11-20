@@ -4,6 +4,8 @@ An **n8n + AI Triage + Klaviyo / HubSpot / Zendesk / Shopify** automation bluepr
 
 **[Explore the interactive workflow walkthrough](https://errer441122.github.io/ecommerce-cx-analytics/)** · **[Download Promo Guard n8n blueprint](workflows/cx-promo-guard.n8n.json)** · **[Download Hold Release n8n blueprint](workflows/cx-hold-release.n8n.json)**
 
+[![The walkthrough page: how long promotions stay paused for each kind of incident](assets/page.png)](https://errer441122.github.io/ecommerce-cx-analytics/)
+
 ---
 
 ## The Business Problem
