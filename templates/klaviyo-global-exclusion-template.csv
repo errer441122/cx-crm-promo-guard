@@ -1,4 +1,4 @@
-Email,cx_promo_hold,cx_review_request_hold,cx_hold_reason,cx_hold_until,cx_active_order_id,cx_active_carrier,cx_priority_tier
-vip.customer@example.com,true,true,carrier_exception; negative_review_1star,2026-06-30,#3003,BRT,P0
-late.parcel@example.com,true,true,late_in_transit,2026-06-15,#3004,GLS,P1
-resolved.customer@example.com,false,false,released_after_cooldown,,#3006,BRT,
+Email,cx_hold_until_delivery,cx_hold_until_review,cx_hold_until_ticket,cx_hold_reason,cx_priority_tier
+vip.customer@example.com,2026-12-04 09:15:00,2026-12-20 10:02:00,,delivery_delay,P0
+late.parcel@example.com,2026-12-04 09:40:00,,,delivery_delay,P1
+returns.3011@example.com,,,2026-11-27 16:20:00,customer_service,P2

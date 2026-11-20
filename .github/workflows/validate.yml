@@ -16,20 +16,22 @@ jobs:
           python3 - <<'PY'
           import json
           w1 = json.load(open('workflows/cx-promo-guard.n8n.json'))
-          w2 = json.load(open('workflows/cx-hold-release.n8n.json'))
           err = json.load(open('workflows/error-notifier.n8n.json'))
-          assert len(w1['nodes']) == 10 and len(w2['nodes']) == 6 and len(err['nodes']) == 2
-          assert '$vars' not in json.dumps(w1) and '$vars' not in json.dumps(w2)
+          assert len(w1['nodes']) == 10 and len(err['nodes']) == 2
+          assert '$vars' not in json.dumps(w1)
           assert any(n['type'] == 'n8n-nodes-base.code' for n in w1['nodes']), "AI parser must be a real Code node"
           guard = [n for n in w1['nodes'] if 'Is P0 Critical or VIP' in n['name']][0]
           conds = guard['parameters']['conditions']['conditions']
           assert len(conds) == 2 and guard['parameters']['conditions']['combinator'] == 'or'
           kl = [n for n in w1['nodes'] if 'Klaviyo:' in n['name']][0]
-          assert 'resolved_email' in kl['parameters']['jsonBody']
-          for wf in (w1, w2, err):
+          assert 'resolved_email' in kl['parameters']['jsonBody'] and 'hold_until' in kl['parameters']['jsonBody']
+          hold = [n for n in w1['nodes'] if n['name'] == 'Hold Window (Fixed Rules, No AI)'][0]
+          for t in ('cx_hold_until_', "'delivery'", "'review'", "'ticket'"):
+              assert t in hold['parameters']['jsCode'], t
+          ai = [n for n in w1['nodes'] if n['name'].startswith('AI:')][0]
+          assert 'hold_days' not in ai['parameters']['jsonBody'], "Pause length is a fixed rule, not an AI output"
+          for wf in (w1, err):
               for n in wf['nodes']:
-                  if n['type'] == 'n8n-nodes-base.hubspot':
-                      assert n['parameters'].get('authentication') == 'appToken'
                   if n['type'] == 'n8n-nodes-base.slack':
                       assert n['parameters'].get('select') == 'channel' and 'channelId' in n['parameters']
           PY
@@ -37,4 +39,4 @@ jobs:
           test -f docs/state-machine-and-crm-rules.md
           test -f docs/sop-cx-crm-operations.md
           test -f templates/klaviyo-global-exclusion-template.csv
-          test -f templates/hubspot-suppression-template.csv
+          test ! -f workflows/cx-hold-release.n8n.json

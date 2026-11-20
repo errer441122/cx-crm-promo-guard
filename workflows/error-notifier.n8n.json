@@ -11,7 +11,7 @@
         260
       ],
       "parameters": {},
-      "notes": "Link this standalone workflow under Settings -> Error Workflow inside cx-promo-guard.n8n.json and cx-hold-release.n8n.json."
+      "notes": "Link this standalone workflow under Settings -> Error Workflow inside cx-promo-guard.n8n.json."
     },
     {
       "id": "2",

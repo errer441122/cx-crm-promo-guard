@@ -1,6 +1,6 @@
 # AI Triage & Empathy Draft Prompt (Human-in-the-Loop)
 
-This prompt powers Node 3 inside [`workflows/cx-promo-guard.n8n.json`](../workflows/cx-promo-guard.n8n.json).
+This prompt powers the node `AI: Triage Urgency & Draft Empathy Reply (JSON)` inside [`workflows/cx-promo-guard.n8n.json`](../workflows/cx-promo-guard.n8n.json). The workflow embeds a condensed version with the same keys. The AI does **not** decide how long promos pause: fixed rules in the node `Hold Window (Fixed Rules, No AI)` do.
 
 ---
 
@@ -11,7 +11,7 @@ This prompt powers Node 3 inside [`workflows/cx-promo-guard.n8n.json`](../workfl
 | **P0 (Critical)** | VIP customer (`orders >= 3` or `LTV >= €300`) with lost/stuck parcel, damaged item, 1-star review, or urgent ticket — OR any customer mentioning chargeback / legal dispute | `logistics_cs` + Slack `#cx-vip-alerts` | Contact within 2 business hours |
 | **P1 (High)** | Non-VIP `not_received` / carrier exception / 1-star review / urgent ticket | `logistics_cs` | Contact same business day |
 | **P2 (Medium)** | Damaged/defective product (`product_quality`) or 2-star review or open normal ticket | `product_quality` or `customer_service` | Contact within 24 hours |
-| **P3 (Follow-up)** | Delivered late within the last 7 days (apology check-in) | `logistics` | Proactive check-in before releasing hold |
+| **P3 (Follow-up)** | Delivered late within the last 7 days (apology check-in) | `logistics` | Proactive apology check-in |
 
 ---
 
@@ -36,7 +36,6 @@ JSON Schema:
   "theme": "not_received" | "product_quality" | "delivery_delay" | "customer_service" | "other",
   "priority_tier": "P0" | "P1" | "P2" | "P3",
   "owner_team": "logistics_cs" | "product_quality" | "logistics" | "customer_service",
-  "hold_days": 7 | 14 | 30,
   "internal_reply_draft": string,
   "escalation_flags": string[]
 }
@@ -44,4 +43,4 @@ JSON Schema:
 
 ## 3. Why Human-in-the-Loop Is Mandatory Here
 
-In Customer Experience, an automated AI email sent directly to an angry customer often makes the crisis worse (hallucinated tracking promises, tone-deaf templates, unauthorized refunds). By posting the AI draft strictly as a **Zendesk Internal Note** while **immediately pausing Klaviyo & HubSpot promotional emails**, the workflow delivers instant revenue & reputation protection with zero brand-safety risk.
+In Customer Experience, an automated AI email sent directly to an angry customer often makes the crisis worse (hallucinated tracking promises, tone-deaf templates, unauthorized refunds). By posting the AI draft strictly as a **Zendesk Internal Note** while **immediately pausing Klaviyo promotional emails and review requests**, the workflow delivers instant revenue & reputation protection with zero brand-safety risk.

@@ -17,7 +17,7 @@
         "responseMode": "onReceived",
         "options": {}
       },
-      "notes": "Unified intake for AfterShip/Sendcloud carrier exceptions, Trustpilot 1-2 star reviews, and Zendesk/HubSpot new/open support tickets."
+      "notes": "Unified intake. Payload: source (aftership | sendcloud | trustpilot | zendesk), order_id, optional email and ticket_id, status, rating, message. Send carrier exceptions, 1-2 star reviews only, and every Zendesk ticket update (solved included)."
     },
     {
       "id": "2",
@@ -102,12 +102,27 @@
       "notes": "Computes resolved_email (webhook or Shopify order fallback), orders_count, total_spent, and is_vip (orders >= 3 OR total_spent >= 300 EUR)."
     },
     {
+      "id": "11",
+      "name": "Hold Window (Fixed Rules, No AI)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Fixed pause rules, no AI: how long promos and review requests wait after each kind of problem.\n// Each kind writes its own end date, so a short pause never cuts a longer one.\nconst event = $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body || {};\nconst source = String(event.source || '').toLowerCase();\n\nlet type = 'ticket';\nlet days = 7;          // Zendesk ticket: 7 days after the latest ticket update (solved included)\nif (source === 'trustpilot') {\n  type = 'review';\n  days = 30;           // 1-2 star review: 30 days\n} else if (source === 'aftership' || source === 'sendcloud') {\n  type = 'delivery';\n  days = 14;           // carrier exception: 14 days, pushed forward by every new exception\n}\n\nconst until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);\nreturn {\n  json: {\n    hold_type: type,\n    hold_days: days,\n    hold_property: 'cx_hold_until_' + type,\n    hold_until: until.toISOString().slice(0, 19).replace('T', ' '), // UTC, a date format Klaviyo reads\n  },\n};"
+      },
+      "notes": "Plain rules anyone can read: carrier exception 14 days, 1-2 star review 30 days, ticket 7 days after its latest update."
+    },
+    {
       "id": "4",
       "name": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        860,
+        1100,
         300
       ],
       "continueOnFail": true,
@@ -118,9 +133,9 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a Customer Experience triage assistant. Return strictly JSON: theme (not_received | product_quality | delivery_delay | customer_service | other), priority_tier (P0 | P1 | P2 | P3), owner_team (logistics_cs | product_quality | logistics | customer_service), hold_days (7 | 14 | 30), internal_reply_draft (short empathetic draft in the customer language for a human agent; NEVER promise unapproved refunds or discounts), escalation_flags (array). Any mention of chargeback, bank dispute, legal threat, or VIP + stuck/lost parcel must be P0.' }, { role: 'user', content: JSON.stringify($json) } ] }) }}"
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a Customer Experience triage assistant. Return strictly JSON: theme (not_received | product_quality | delivery_delay | customer_service | other), priority_tier (P0 | P1 | P2 | P3), owner_team (logistics_cs | product_quality | logistics | customer_service), internal_reply_draft (short empathetic draft in the customer language for a human agent; NEVER promise unapproved refunds or discounts), escalation_flags (array). Any mention of chargeback, bank dispute, legal threat, or VIP + stuck/lost parcel must be P0.' }, { role: 'user', content: JSON.stringify($('Resolve Customer Email & VIP Status').item.json) } ] }) }}"
       },
-      "notes": "Strict JSON contract. Draft reply is saved ONLY as a private internal note for human review."
+      "notes": "Strict JSON contract: priority, theme, owner team and a draft. The pause length is not the AI's call: the fixed rules in the node before set it. The draft is saved ONLY as a private internal note."
     },
     {
       "id": "5",
@@ -128,23 +143,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
+        1340,
         300
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const raw = String(\n  $json.choices?.[0]?.message?.content ||\n  $json.candidates?.[0]?.content?.parts?.[0]?.text ||\n  '{}'\n).replace(/```json|```/g, '').trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (err) {\n  parsed = {};\n}\n\nreturn {\n  json: {\n    theme: parsed.theme || 'cx_issue_open',\n    priority_tier: parsed.priority_tier || 'P2',\n    owner_team: parsed.owner_team || 'customer_service',\n    hold_days: Number(parsed.hold_days) || 14,\n    internal_reply_draft: parsed.internal_reply_draft || 'AI draft unavailable — review order & customer context manually.'\n  }\n};"
+        "jsCode": "const raw = String(\n  $json.choices?.[0]?.message?.content ||\n  $json.candidates?.[0]?.content?.parts?.[0]?.text ||\n  '{}'\n).replace(/```json|```/g, '').trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (err) {\n  parsed = {};\n}\n\nreturn {\n  json: {\n    theme: parsed.theme || 'cx_issue_open',\n    priority_tier: parsed.priority_tier || 'P2',\n    owner_team: parsed.owner_team || 'customer_service',\n    internal_reply_draft: parsed.internal_reply_draft || 'AI draft unavailable — review order & customer context manually.'\n  }\n};"
       },
       "notes": "Real JavaScript Code node (n8n Community-safe try/catch). Supports OpenAI & Gemini outputs cleanly."
     },
     {
       "id": "6",
-      "name": "Klaviyo: Set cx_promo_hold = true",
+      "name": "Klaviyo: Set Pause End Date",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
-        140
+        1600,
+        180
       ],
       "parameters": {
         "method": "POST",
@@ -170,44 +185,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ data: { type: 'profile', attributes: { email: $('Resolve Customer Email & VIP Status').item.json.resolved_email, properties: { cx_promo_hold: true, cx_review_request_hold: true, cx_hold_reason: $json.theme, cx_priority_tier: $json.priority_tier, cx_hold_days: $json.hold_days } } } }) }}"
+        "jsonBody": "={{ JSON.stringify({ data: { type: 'profile', attributes: { email: $('Resolve Customer Email & VIP Status').item.json.resolved_email, properties: { [$('Hold Window (Fixed Rules, No AI)').item.json.hold_property]: $('Hold Window (Fixed Rules, No AI)').item.json.hold_until, cx_hold_reason: $json.theme, cx_priority_tier: $json.priority_tier } } } }) }}"
       },
-      "notes": "Uses resolved_email and stable Klaviyo API revision 2026-10-15. Configure httpHeaderAuth with Authorization: Klaviyo-API-Key YOUR_KEY."
-    },
-    {
-      "id": "7",
-      "name": "HubSpot: Set CX Promo Hold = Yes",
-      "type": "n8n-nodes-base.hubspot",
-      "typeVersion": 2,
-      "position": [
-        1380,
-        300
-      ],
-      "parameters": {
-        "resource": "contact",
-        "operation": "upsert",
-        "email": "={{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }}",
-        "additionalFields": {
-          "customPropertiesUi": {
-            "customPropertiesValues": [
-              {
-                "property": "cx_promo_hold",
-                "value": "true"
-              },
-              {
-                "property": "cx_review_request_hold",
-                "value": "true"
-              },
-              {
-                "property": "cx_hold_reason",
-                "value": "={{ $json.theme }}"
-              }
-            ]
-          }
-        },
-        "authentication": "appToken"
-      },
-      "notes": "Uses resolved_email from Shopify lookup/fallback to keep HubSpot suppression synced with Klaviyo."
+      "notes": "Writes one end date per kind of problem (cx_hold_until_delivery / _review / _ticket) on the profile found by resolved_email. The Klaviyo segment 'CX hold active' reads these dates, so nothing has to release the pause. API revision 2026-10-15; httpHeaderAuth with Authorization: Klaviyo-API-Key YOUR_KEY."
     },
     {
       "id": "8",
@@ -215,8 +195,8 @@
       "type": "n8n-nodes-base.zendesk",
       "typeVersion": 1,
       "position": [
-        1380,
-        460
+        1600,
+        420
       ],
       "continueOnFail": true,
       "parameters": {
@@ -224,10 +204,10 @@
         "operation": "update",
         "id": "={{ $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body.ticket_id }}",
         "updateFields": {
-          "internalNote": "=[AI Triage — Human Review Required]\nCustomer: {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} (VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})\nOrder: {{ $('Resolve Customer Email & VIP Status').item.json.order_id }}\nPriority: {{ $json.priority_tier }} | Owner Team: {{ $json.owner_team }}\nCRM Promo Hold: ACTIVE (Klaviyo + HubSpot, {{ $json.hold_days }}d window)\n\nSuggested empathetic reply (review & edit before sending):\n{{ $json.internal_reply_draft }}"
+          "internalNote": "=[AI Triage — Human Review Required]\nCustomer: {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} (VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})\nOrder: {{ $('Resolve Customer Email & VIP Status').item.json.order_id }}\nPriority: {{ $json.priority_tier }} | Owner Team: {{ $json.owner_team }}\nPromo pause: Klaviyo, {{ $('Hold Window (Fixed Rules, No AI)').item.json.hold_type }} until {{ $('Hold Window (Fixed Rules, No AI)').item.json.hold_until }} UTC\n\nSuggested empathetic reply (review & edit before sending):\n{{ $json.internal_reply_draft }}"
         }
       },
-      "notes": "Human-in-the-loop safety: posts draft ONLY as private internal note; never emails customers automatically. Swap for HubSpot Ticket node if running without Zendesk."
+      "notes": "Human-in-the-loop: the draft goes ONLY into a private internal note, never to the customer. Needs ticket_id in the event; without one (e.g. a carrier exception before the customer writes) this step fails softly (continue on fail) and the pause still applies."
     },
     {
       "id": "9",
@@ -235,8 +215,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1660,
-        220
+        1860,
+        180
       ],
       "parameters": {
         "conditions": {
@@ -278,8 +258,8 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
       "position": [
-        1920,
-        160
+        2120,
+        180
       ],
       "parameters": {
         "select": "channel",
@@ -288,7 +268,7 @@
           "value": "#cx-vip-alerts",
           "mode": "name"
         },
-        "text": "=:rotating_light: *CX Alert ({{ $('Parse AI Triage Output (Safe Defaults)').item.json.priority_tier }} | VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})* — Promos & Review Requests PAUSED\n*Customer:* {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} ({{ $('Resolve Customer Email & VIP Status').item.json.orders_count }} orders, EUR {{ $('Resolve Customer Email & VIP Status').item.json.total_spent }})\n*Order:* {{ $('Resolve Customer Email & VIP Status').item.json.order_id }} | *Theme:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.theme }} | *Owner:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.owner_team }}\n*Suggested internal draft (human review required):* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.internal_reply_draft }}",
+        "text": "=:rotating_light: *CX Alert ({{ $('Parse AI Triage Output (Safe Defaults)').item.json.priority_tier }} | VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})* Promos and review requests paused until {{ $('Hold Window (Fixed Rules, No AI)').item.json.hold_until }} UTC ({{ $('Hold Window (Fixed Rules, No AI)').item.json.hold_type }})\n*Customer:* {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} ({{ $('Resolve Customer Email & VIP Status').item.json.orders_count }} orders, EUR {{ $('Resolve Customer Email & VIP Status').item.json.total_spent }})\n*Order:* {{ $('Resolve Customer Email & VIP Status').item.json.order_id }} | *Theme:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.theme }} | *Owner:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.owner_team }}\n*Suggested internal draft (human review required):* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.internal_reply_draft }}",
         "otherOptions": {},
         "resource": "message",
         "operation": "post"
@@ -322,7 +302,7 @@
       "main": [
         [
           {
-            "node": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
+            "node": "Hold Window (Fixed Rules, No AI)",
             "type": "main",
             "index": 0
           }
@@ -344,28 +324,12 @@
       "main": [
         [
           {
-            "node": "Klaviyo: Set cx_promo_hold = true",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "HubSpot: Set CX Promo Hold = Yes",
+            "node": "Klaviyo: Set Pause End Date",
             "type": "main",
             "index": 0
           },
           {
             "node": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Klaviyo: Set cx_promo_hold = true": {
-      "main": [
-        [
-          {
-            "node": "Guard: Is P0 Critical or VIP?",
             "type": "main",
             "index": 0
           }
@@ -382,6 +346,28 @@
           }
         ],
         []
+      ]
+    },
+    "Hold Window (Fixed Rules, No AI)": {
+      "main": [
+        [
+          {
+            "node": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Klaviyo: Set Pause End Date": {
+      "main": [
+        [
+          {
+            "node": "Guard: Is P0 Critical or VIP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
