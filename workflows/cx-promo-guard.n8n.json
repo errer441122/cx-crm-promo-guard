@@ -1,0 +1,179 @@
+{
+  "name": "CX-to-CRM AI Promo Guard & Proactive Recovery",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Webhook: Carrier / Trustpilot / Zendesk Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [160, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cx-promo-guard",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "notes": "Unified intake for AfterShip/Sendcloud carrier exceptions, Trustpilot 1-2 star reviews, and Zendesk/HubSpot new/open support tickets."
+    },
+    {
+      "id": "2",
+      "name": "Shopify: Lookup Order & Customer LTV",
+      "type": "n8n-nodes-base.shopify",
+      "typeVersion": 1,
+      "position": [420, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "resource": "order",
+        "operation": "getAll",
+        "additionalFields": {
+          "status": "any"
+        }
+      },
+      "notes": "Resolves missing email from order_id/Reference Id and fetches historical orders & total spend to flag VIP customers (orders >= 3 or LTV >= 300 EUR)."
+    },
+    {
+      "id": "3",
+      "name": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a Customer Experience triage assistant. Return strictly JSON: theme (not_received | product_quality | delivery_delay | customer_service | other), priority_tier (P0 | P1 | P2 | P3), owner_team (logistics_cs | product_quality | logistics | customer_service), hold_days (7 | 14 | 30), internal_reply_draft (short empathetic draft for a human agent; NEVER promise unapproved refunds or discounts), escalation_flags (array).' }, { role: 'user', content: JSON.stringify($json) } ] }) }}"
+      },
+      "notes": "Strict JSON contract. Draft reply is saved ONLY as an internal note for human agent review."
+    },
+    {
+      "id": "4",
+      "name": "Klaviyo: Set cx_promo_hold = true",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 140],
+      "parameters": {
+        "method": "POST",
+        "url": "https://a.klaviyo.com/api/profile-import/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "revision", "value": "2026-07-15" },
+            { "name": "Content-Type", "value": "application/vnd.api+json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: { type: 'profile', attributes: { email: $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body.email, properties: { cx_promo_hold: true, cx_review_request_hold: true, cx_hold_reason: JSON.parse($json.choices?.[0]?.message?.content || '{}').theme || 'cx_issue_open', cx_priority_tier: JSON.parse($json.choices?.[0]?.message?.content || '{}').priority_tier || 'P2' } } } }) }}"
+      },
+      "notes": "Immediately adds customer to Klaviyo Global Promo Exclusion Segment and pauses automated review requests."
+    },
+    {
+      "id": "5",
+      "name": "HubSpot: Set CX Promo Hold = Yes",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              { "property": "cx_promo_hold", "value": "true" },
+              { "property": "cx_review_request_hold", "value": "true" },
+              { "property": "cx_hold_reason", "value": "={{ JSON.parse($json.choices?.[0]?.message?.content || '{}').theme || 'cx_issue_open' }}" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "6",
+      "name": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)",
+      "type": "n8n-nodes-base.zendesk",
+      "typeVersion": 1,
+      "position": [960, 460],
+      "parameters": {
+        "resource": "ticket",
+        "operation": "update",
+        "id": "={{ $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body.ticket_id }}",
+        "updateFields": {
+          "internalNote": "=[AI Triage — Human Review Required]\nPriority: {{ JSON.parse($json.choices?.[0]?.message?.content || '{}').priority_tier }}\nOwner Team: {{ JSON.parse($json.choices?.[0]?.message?.content || '{}').owner_team }}\nCRM Promo Hold: ACTIVE (Klaviyo + HubSpot)\n\nSuggested empathetic reply (review & edit before sending):\n{{ JSON.parse($json.choices?.[0]?.message?.content || '{}').internal_reply_draft }}"
+        }
+      },
+      "notes": "Human-in-the-loop safety: posts draft ONLY as private internal note; never emails customers automatically."
+    },
+    {
+      "id": "7",
+      "name": "Guard: Is P0 Critical or VIP?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1240, 220],
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "conditions": [
+            {
+              "leftValue": "={{ JSON.parse($('AI: Triage Urgency & Draft Empathy Reply (JSON)').item.json.choices?.[0]?.message?.content || '{}').priority_tier }}",
+              "rightValue": "P0",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8",
+      "name": "Slack: Instant P0 VIP Escalation",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1500, 160],
+      "parameters": {
+        "channel": "#cx-vip-alerts",
+        "text": "=:rotating_light: *P0 VIP CX Alert* — Promos & Review Requests PAUSED\n*Customer:* {{ $('Webhook: Carrier / Trustpilot / Zendesk Event').item.json.body.email }}\n*Theme:* {{ JSON.parse($('AI: Triage Urgency & Draft Empathy Reply (JSON)').item.json.choices?.[0]?.message?.content || '{}').theme }}\n*Owner:* {{ JSON.parse($('AI: Triage Urgency & Draft Empathy Reply (JSON)').item.json.choices?.[0]?.message?.content || '{}').owner_team }}\nInternal draft note ready in Zendesk."
+      }
+    },
+    {
+      "id": "9",
+      "name": "Error Trigger: Failure Alert",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [160, 560],
+      "parameters": {}
+    },
+    {
+      "id": "10",
+      "name": "Slack: Alert #martech-alerts",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [420, 560],
+      "parameters": {
+        "channel": "#martech-alerts",
+        "text": "=:warning: *CX Promo Guard workflow error* at `{{ $json.execution.lastNodeExecuted }}`: {{ $json.execution.error.message }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Carrier / Trustpilot / Zendesk Event": { "main": [[{ "node": "Shopify: Lookup Order & Customer LTV", "type": "main", "index": 0 }]] },
+    "Shopify: Lookup Order & Customer LTV": { "main": [[{ "node": "AI: Triage Urgency & Draft Empathy Reply (JSON)", "type": "main", "index": 0 }]] },
+    "AI: Triage Urgency & Draft Empathy Reply (JSON)": {
+      "main": [[
+        { "node": "Klaviyo: Set cx_promo_hold = true", "type": "main", "index": 0 },
+        { "node": "HubSpot: Set CX Promo Hold = Yes", "type": "main", "index": 0 },
+        { "node": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)", "type": "main", "index": 0 }
+      ]]
+    },
+    "Klaviyo: Set cx_promo_hold = true": { "main": [[{ "node": "Guard: Is P0 Critical or VIP?", "type": "main", "index": 0 }]] },
+    "Guard: Is P0 Critical or VIP?": { "main": [[{ "node": "Slack: Instant P0 VIP Escalation", "type": "main", "index": 0 }], []] },
+    "Error Trigger: Failure Alert": { "main": [[{ "node": "Slack: Alert #martech-alerts", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

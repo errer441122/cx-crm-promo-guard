@@ -1,7 +1,0 @@
-Order Number,Customer Email,Carrier,Tracking Number,Tracking Status,Estimated Delivery,Delivered At
-#3003,,BRT,BRT9901,exception,2026-05-23,
-#3004,trustpilot.only@example.com,GLS,GLS4410,in_transit,2026-05-25,
-#3005,recent.late@example.com,GLS,GLS4411,delivered,2026-05-24,2026-05-29
-#3006,resolved.old@example.com,BRT,BRT9902,delivered,2026-05-05,2026-05-10
-#3007,happy.ontime@example.com,DHL,DHL7701,delivered,2026-05-27,2026-05-26
-#3008,zendesk.angry@example.com,DHL,DHL7702,delivered,2026-05-27,2026-05-27

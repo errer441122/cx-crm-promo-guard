@@ -1,0 +1,4 @@
+Email,CX Promo Hold,CX Review Request Hold,CX Hold Reason,CX Hold Until,Active Order ID,Active Carrier,Priority Tier
+vip.customer@example.com,Yes,Yes,carrier_exception; negative_review_1star,2026-06-30,#3003,BRT,P0
+late.parcel@example.com,Yes,Yes,late_in_transit,2026-06-15,#3004,GLS,P1
+resolved.customer@example.com,No,No,released_after_cooldown,,#3006,BRT,

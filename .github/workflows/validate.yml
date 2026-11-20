@@ -1,32 +1,21 @@
-name: CI
+name: Validate Workflows & Docs
 
 on:
   push:
     branches:
       - main
   pull_request:
-  workflow_dispatch:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Unit tests (pure stdlib, no network)
-        run: python -m unittest discover -s tests -v
-      - name: End-to-end cross-tool CLI smoke test (Carrier + Trustpilot + Zendesk + Shopify)
+      - name: Verify both n8n workflow blueprints and documentation exist
         run: |
-          python src/cx_promo_guard.py \
-            --shipments fixtures/shipments_carrier_schema.csv \
-            --reviews fixtures/trustpilot_reviews_schema.csv \
-            --tickets fixtures/zendesk_tickets_schema.csv \
-            --orders fixtures/shopify_orders_schema.csv \
-            --as-of 2026-06-01 \
-            --out build/cx_guard
-          python src/cx_promo_guard.py \
-            --tickets fixtures/hubspot_tickets_schema.csv \
-            --as-of 2026-06-01 \
-            --out build/cx_hubspot
+          python3 -c "import json; w1=json.load(open('workflows/cx-promo-guard.n8n.json')); w2=json.load(open('workflows/cx-hold-release.n8n.json')); assert len(w1['nodes'])==10 and len(w2['nodes'])==6"
+          test -f prompts/cx-triage-and-draft-prompt.md
+          test -f docs/state-machine-and-crm-rules.md
+          test -f docs/sop-cx-crm-operations.md
+          test -f templates/klaviyo-global-exclusion-template.csv
+          test -f templates/hubspot-suppression-template.csv

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>CX-to-CRM Promo Guard &amp; Proactive Recovery Engine</title>
-<meta name="description" content="Stop sending promotional DEMs and review requests to customers with stuck parcels, 1-2 star Trustpilot reviews, or open Zendesk/HubSpot support tickets. Runs locally in your browser.">
+<title>CX-to-CRM AI Promo Guard &amp; Proactive Recovery Workflow</title>
+<meta name="description" content="n8n + AI Triage + Klaviyo/HubSpot/Zendesk/Shopify workflows that pause promotions for frustrated customers and release holds automatically after cooldown.">
 <style>
 @font-face { font-family: "Outfit"; src: url("fonts/outfit-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Outfit"; src: url("fonts/outfit-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
@@ -13,9 +13,9 @@
 
 :root {
   color-scheme: light;
-  --page: #f7f5f2; --surface: #ffffff; --surface-2: #faf9f7; --ink: #171412; --ink-2: #514a44; --muted: #787069;
+  --page: #f7f5f2; --surface: #ffffff; --surface-2: #faf8f5; --ink: #171412; --ink-2: #524a44; --muted: #7a7169;
   --line: #e4ded7; --accent: #b43b1e; --accent-ink: #ffffff; --tint: #fceee9;
-  --good: #0f6b4a; --good-tint: #e8f5ee; --warn: #9a5b00; --warn-tint: #fef5e5;
+  --good: #0f6b4a; --good-tint: #e8f5ee; --warn: #945600; --warn-tint: #fef5e5;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -27,222 +27,154 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); color: var(--ink); font: 15.5px/1.6 "Outfit", system-ui, -apple-system, sans-serif; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.9em; }
 a { color: var(--accent); text-underline-offset: 3px; }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 header.nav { position: sticky; top: 0; z-index: 5; background: var(--page); border-bottom: 1px solid var(--line); }
 header.nav .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
 .brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+.nav nav { display: flex; gap: 18px; font-size: 14px; }
+.nav nav a { color: var(--ink-2); text-decoration: none; }
 .nav .src { margin-left: auto; font-size: 14px; }
 
-.hero { padding: 48px 0 26px; }
+.hero { padding: 50px 0 30px; }
 .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
-h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
-.lead { font-size: 17px; color: var(--ink-2); max-width: 72ch; margin: 0 0 16px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.chip { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
-.status { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; margin: 0; }
-.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.status.ok::before { background: var(--good); }
-.status.err { color: var(--accent); }
-.status.err::before { background: var(--accent); }
-
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; margin: 18px 0 28px; }
-.panel h2 { font-size: 22px; letter-spacing: -0.02em; margin: 0 0 6px; }
-.panel > p { color: var(--ink-2); margin: 0 0 18px; max-width: 78ch; }
-.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: 14px 18px; margin-bottom: 18px; }
-label { display: grid; gap: 5px; font-size: 13.5px; font-weight: 600; }
-label small { font-weight: 400; color: var(--muted); }
-input[type=date], input[type=number] { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
-input[type=file] { font-size: 13.5px; color: var(--ink-2); }
+h1 { font-size: clamp(28px, 4.2vw, 44px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
+.lead { font-size: 17px; color: var(--ink-2); max-width: 72ch; margin: 0 0 18px; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.btn { font: inherit; font-size: 14.5px; font-weight: 600; border-radius: 999px; padding: 9px 18px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.btn { display: inline-block; font: inherit; font-size: 14.5px; font-weight: 600; border-radius: 999px; padding: 10px 20px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
 .btn.ghost { background: transparent; color: var(--accent); }
 
-.out { margin-top: 22px; }
-.out:empty { display: none; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; margin: 14px 0 18px; }
-.kpi { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.kpi span { display: block; font-size: 12.5px; color: var(--muted); }
-.kpi b { display: block; font-size: 24px; line-height: 1.2; margin-top: 2px; }
-.banner { padding: 12px 16px; border-radius: 10px; font-weight: 600; margin-bottom: 14px; background: var(--tint); color: var(--accent); }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin: 0 0 26px; }
+section.card h2 { font-size: 23px; letter-spacing: -0.02em; margin: 0 0 8px; }
+section.card > p { color: var(--ink-2); margin: 0 0 18px; max-width: 78ch; }
 
+.flow-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.node-btn { text-align: left; font: inherit; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); }
+.node-btn:hover, .node-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); }
+.node-btn small { display: block; font-size: 11.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; }
+.node-btn b { display: block; font-size: 14.5px; margin-top: 2px; }
+.inspector { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+.inspector h3 { margin: 0 0 6px; font-size: 17px; }
+.inspector p { margin: 0 0 10px; color: var(--ink-2); font-size: 14.5px; }
+.inspector pre { margin: 0; padding: 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); overflow-x: auto; font-size: 12.5px; }
+
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+thead th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
 .badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
 .badge.hold { background: var(--tint); color: var(--accent); }
 .badge.rel { background: var(--good-tint); color: var(--good); }
-.badge.p0 { background: var(--tint); color: var(--accent); }
-.badge.p1 { background: var(--warn-tint); color: var(--warn); }
+.badge.warn { background: var(--warn-tint); color: var(--warn); }
 
-.scroll { overflow-x: auto; margin-top: 10px; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { padding: 7px 9px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
-thead th { font-size: 11.5px; color: var(--muted); font-weight: 600; }
-h3 { font-size: 16px; margin: 22px 0 6px; }
 footer { border-top: 1px solid var(--line); padding: 24px 0 44px; color: var(--ink-2); font-size: 13.5px; }
-@media (max-width: 640px) { .wrap { padding: 0 16px; } .panel { padding: 18px 16px; } }
+@media (max-width: 640px) { .wrap { padding: 0 16px; } .nav nav { display: none; } section.card { padding: 20px 16px; } }
 </style>
 </head>
 <body>
 <header class="nav"><div class="wrap">
-  <a class="brand" href="#top">CX-to-CRM Promo Guard</a>
-  <a class="src" href="https://github.com/errer441122/ecommerce-cx-analytics">Source on GitHub</a>
+  <a class="brand" href="#top">CX-to-CRM AI Promo Guard</a>
+  <nav>
+    <a href="#workflow">Workflow Walkthrough</a>
+    <a href="#rules">Hold &amp; Release Rules</a>
+    <a href="#safety">AI Safety</a>
+  </nav>
+  <a class="src" href="https://github.com/errer441122/ecommerce-cx-analytics">Repository on GitHub</a>
 </div></header>
 
 <main class="wrap" id="top">
   <section class="hero">
-    <p class="eyebrow">Post-Purchase CX &times; CRM Automation</p>
-    <h1>Stop sending promotional emails to angry customers or delayed parcels.</h1>
-    <p class="lead">Join <strong>Carrier / Sendcloud / AfterShip shipments</strong>, <strong>Trustpilot reviews</strong>, <strong>Zendesk / HubSpot tickets</strong>, and <strong>Shopify orders</strong> into one daily CRM Promo Hold list for <strong>Klaviyo</strong> &amp; <strong>HubSpot</strong> plus an LTV-weighted CS recovery queue. Runs 100% locally in your browser.</p>
-    <div class="chips">
-      <span class="chip">AfterShip / Sendcloud / ShippyPro</span>
-      <span class="chip">Trustpilot &amp; Judge.me</span>
-      <span class="chip">Zendesk &amp; HubSpot Tickets</span>
-      <span class="chip">Shopify LTV &amp; Email Join</span>
-      <span class="chip">Klaviyo &amp; HubSpot Hold CSVs</span>
+    <p class="eyebrow">AI Automation &middot; Post-Purchase CX &amp; CRM Operations</p>
+    <h1>Stop sending promotional emails to customers with stuck parcels, 1-star reviews, or open support tickets.</h1>
+    <p class="lead">Two visual <strong>n8n</strong> blueprints bridging <strong>AfterShip / Sendcloud, Trustpilot, Zendesk, and Shopify</strong> directly into <strong>Klaviyo &amp; HubSpot</strong> Global Exclusion Segments &mdash; with human-in-the-loop AI triage and automatic post-cooldown release.</p>
+    <div class="actions">
+      <a class="btn" href="https://raw.githubusercontent.com/errer441122/ecommerce-cx-analytics/main/workflows/cx-promo-guard.n8n.json" download="cx-promo-guard.n8n.json">Download Promo Guard (.json)</a>
+      <a class="btn ghost" href="https://raw.githubusercontent.com/errer441122/ecommerce-cx-analytics/main/workflows/cx-hold-release.n8n.json" download="cx-hold-release.n8n.json">Download Hold Release (.json)</a>
     </div>
-    <p class="status" id="status" role="status">Loading local Python engine (Pyodide)...</p>
   </section>
 
-  <section class="panel">
-    <h2>Daily Cross-Tool CX &rarr; CRM Sync</h2>
-    <p>Upload any combination of post-purchase exports (at least one of Shipments, Reviews, or Tickets). Adding your <strong>Shopify Orders export</strong> automatically resolves missing emails from <code>order_id</code> / <code>Reference Id</code> and escalates VIP customers to <strong>P0</strong>.</p>
-    <div class="fields">
-      <label>Shipments CSV <small>AfterShip / Sendcloud / ShippyPro / Carrier</small><input type="file" id="cx-ship" accept=".csv,text/csv"></label>
-      <label>Reviews CSV <small>Trustpilot Business / Judge.me / Yotpo</small><input type="file" id="cx-rev" accept=".csv,text/csv"></label>
-      <label>Support Tickets CSV <small>Zendesk Support / HubSpot Service Hub</small><input type="file" id="cx-tkt" accept=".csv,text/csv"></label>
-      <label>Shopify Orders CSV <small>optional (resolves missing emails &amp; VIP LTV)</small><input type="file" id="cx-ord" accept=".csv,text/csv"></label>
-      <label>Reference date <input type="date" id="cx-asof" value="2026-06-01"></label>
-      <label>Late-delivery cooldown (days) <input type="number" id="cx-cool" value="7" min="1" max="60"></label>
-      <label>Negative review hold (days) <input type="number" id="cx-rcool" value="30" min="1" max="90"></label>
+  <section class="card" id="workflow">
+    <h2>Interactive Workflow Walkthrough</h2>
+    <p>Inspect how an incoming carrier exception, negative review, or support ticket pauses marketing sends and escalates VIPs without ever auto-emailing an angry customer.</p>
+    <div class="flow-steps" id="steps"></div>
+    <div class="inspector" id="inspector"></div>
+  </section>
+
+  <section class="card" id="rules">
+    <h2>Hold &rarr; Cooldown &rarr; Release State Machine</h2>
+    <p>Every suppressed contact carries an explicit reason and expiry rule so the daily 07:30 CET release workflow returns resolved customers to normal CRM flows cleanly.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Source Signal</th><th>Trigger Condition</th><th>CRM Action</th><th>Cooldown / Release Rule</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Carriers (AfterShip / Sendcloud)</strong></td><td><code>exception</code>, <code>lost</code>, <code>failed_attempt</code>, or late in transit</td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released <strong>7 days</strong> after confirmed delivery</td></tr>
+          <tr><td><strong>Trustpilot / Judge.me / Yotpo</strong></td><td>1&ndash;2 star review submitted</td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released after <strong>30-day</strong> cooldown</td></tr>
+          <tr><td><strong>Zendesk / HubSpot Tickets</strong></td><td>Status <code>new</code>, <code>open</code>, <code>pending</code>, or <code>hold</code></td><td><span class="badge hold">HOLD</span> Promos + Review Requests</td><td>Released once ticket status = <code>solved</code> / <code>closed</code></td></tr>
+          <tr><td><strong>Daily 07:30 CET Release Job</strong></td><td>Cooldown expired &amp; zero open tickets</td><td><span class="badge rel">RELEASE</span> <code>cx_promo_hold = false</code></td><td>Customer re-enters standard lifecycle flows</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div class="actions">
-      <button class="btn" id="cx-run">Build CRM Promo Hold &amp; CS Queue</button>
-      <button class="btn ghost" id="cx-fix">Load Full Cross-Tool Schema Fixture (Carrier + Trustpilot + Zendesk + Shopify)</button>
+  </section>
+
+  <section class="card" id="safety">
+    <h2>Human-in-the-Loop AI Guardrails</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Risk</th><th>Guardrail Built Into Prompt &amp; Workflow</th></tr></thead>
+        <tbody>
+          <tr><td>AI sends tone-deaf reply directly to frustrated customer</td><td>Draft is written strictly as a <strong>private Zendesk Internal Note</strong> &mdash; a human agent edits and sends</td></tr>
+          <tr><td>AI promises unauthorized refunds or coupons</td><td>System prompt forbids monetary/refund promises; only acknowledges the issue and investigation</td></tr>
+          <tr><td>Chargeback or legal threat buried in standard queue</td><td>Keyword &amp; intent escalation forces <code>priority_tier = P0</code> + instant Slack alert to <code>#cx-vip-alerts</code></td></tr>
+          <tr><td>Carrier/Trustpilot export lacks customer email</td><td>Shopify Order Lookup resolves <code>order_id / Reference Id &rarr; email</code> + VIP LTV automatically</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div class="out" id="cx-out" aria-live="polite"></div>
   </section>
 </main>
 
 <footer><div class="wrap">
-  <p>Executes this repository's pure-Python standard-library engine locally via <a href="https://pyodide.org">Pyodide</a>. Customer emails never leave your device. Schema fixtures use synthetic <code>example.com</code> addresses solely to validate cross-tool joining and CRM hold/release logic.</p>
+  <p>Visual n8n workflows, AI triage prompt, and CRM/CX SOP by Riccardo Capanna. Full files in <a href="https://github.com/errer441122/ecommerce-cx-analytics">github.com/errer441122/ecommerce-cx-analytics</a>.</p>
 </div></footer>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js" integrity="sha384-4X7gSPzQ4pHfjTE5aBEPJAQcHu55sciq+NWO3OUOZ3zHSJhn4te9CBjUyRSr+nei" crossorigin="anonymous"></script>
 <script>
-"use strict";
-const REPO = "errer441122/ecommerce-cx-analytics";
-const BASE = location.hostname.endsWith("github.io") ? `https://raw.githubusercontent.com/${REPO}/main/` : "../";
-const FILES = ["cx_io.py", "cx_promo_guard.py", "web_app.py"];
-const $ = (id) => document.getElementById(id);
-
-let pyPromise = null;
-function engine() {
-  if (!pyPromise) {
-    pyPromise = (async () => {
-      const py = await loadPyodide();
-      py.FS.mkdirTree("/app");
-      for (const f of FILES) {
-        const r = await fetch(BASE + "src/" + f);
-        if (!r.ok) throw new Error(`Failed loading ${f} (${r.status})`);
-        py.FS.writeFile(`/app/${f}`, await r.text());
-      }
-      py.runPython('import sys; sys.path.insert(0, "/app"); import web_app');
-      const s = $("status"); s.textContent = "Ready. All customer exports stay locally in your browser."; s.className = "status ok";
-      return py;
-    })().catch((e) => {
-      pyPromise = null;
-      const s = $("status"); s.textContent = "Engine error: " + e.message; s.className = "status err";
-      throw e;
-    });
+const NODES = [
+  {
+    step: "Step 1-2", title: "Unified Intake + Shopify VIP Lookup",
+    desc: "Receives carrier exceptions, 1-2 star Trustpilot reviews, or Zendesk tickets. Looks up order_id in Shopify to resolve missing emails and check VIP status (3+ orders or >=300 EUR LTV).",
+    sample: '{\n  "source": "aftership_webhook",\n  "order_id": "#3003",\n  "carrier": "BRT",\n  "status": "exception",\n  "resolved_email": "vip.customer@domain.it",\n  "shopify_ltv_eur": 585.00,\n  "is_vip": true\n}'
+  },
+  {
+    step: "Step 3", title: "AI Structured Triage & Safe Draft",
+    desc: "Classifies theme, assigns P0-P3 priority and owner team, and writes a short empathetic draft in the customer's language without ever promising unapproved refunds.",
+    sample: '{\n  "theme": "not_received",\n  "priority_tier": "P0",\n  "owner_team": "logistics_cs",\n  "hold_days": 14,\n  "internal_reply_draft": "Ciao Giulia, abbiamo visto che la spedizione #3003 con BRT risulta bloccata e abbiamo gia aperto una verifica prioritaria con il corriere. Ti aggiorniamo entro oggi pomeriggio.",\n  "escalation_flags": ["vip_high_ltv"]\n}'
+  },
+  {
+    step: "Step 4-5", title: "Klaviyo & HubSpot Global Promo Hold",
+    desc: "Updates profile properties (cx_promo_hold=true, cx_review_request_hold=true) in real time so every promotional campaign and automated review flow excludes the contact automatically.",
+    sample: 'Klaviyo Profile Update -> cx_promo_hold: true, cx_review_request_hold: true\nHubSpot Contact Upsert -> CX Promo Hold: Yes\nSegment: "Global Exclusion - Active CX Hold" updated immediately'
+  },
+  {
+    step: "Step 6-8", title: "Zendesk Internal Note + P0 Slack Alert",
+    desc: "Posts the AI draft strictly as a private internal note in Zendesk for human review and triggers an instant #cx-vip-alerts Slack message for P0 cases.",
+    sample: 'Slack #cx-vip-alerts:\nP0 VIP CX Alert - Promos & Review Requests PAUSED\nCustomer: vip.customer@domain.it (LTV 585 EUR)\nTheme: not_received | Owner: logistics_cs\nInternal draft note ready in Zendesk.'
   }
-  return pyPromise;
+];
+const stepsEl = document.getElementById("steps");
+const inspEl = document.getElementById("inspector");
+function show(idx) {
+  [...stepsEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
+  const n = NODES[idx];
+  inspEl.innerHTML = `<h3>${n.step}: ${n.title}</h3><p>${n.desc}</p><pre>${n.sample.replace(/</g,"&lt;")}</pre>`;
 }
-
-function el(tag, props = {}, ...children) {
-  const n = Object.assign(document.createElement(tag), props);
-  for (const c of children) n.append(c instanceof Node ? c : document.createTextNode(String(c)));
-  return n;
-}
-function download(name, text, mime) {
-  const a = el("a", { href: URL.createObjectURL(new Blob([text], { type: mime })), download: name });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-async function readFile(input) {
-  const f = input.files[0]; if (!f) return null;
-  const buf = await f.arrayBuffer();
-  try { return new TextDecoder("utf-8", { fatal: true }).decode(buf); }
-  catch { return new TextDecoder("windows-1252").decode(buf); }
-}
-async function fetchText(rel) {
-  const r = await fetch(BASE + rel);
-  if (!r.ok) throw new Error(`Could not fetch ${rel}`);
-  return r.text();
-}
-function makeTable(header, rows, badgeCol = -1) {
-  if (!rows.length) return el("p", {}, "None.");
-  return el("div", { className: "scroll" }, el("table", {},
-    el("thead", {}, el("tr", {}, ...header.map((h) => el("th", {}, h)))),
-    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c, idx) => {
-      if (idx === badgeCol) {
-        const s = String(c);
-        const cls = s === "HOLD" || s === "P0" ? "hold" : (s === "RELEASE" ? "rel" : "p1");
-        return el("td", {}, el("span", { className: `badge ${cls}` }, s));
-      }
-      return el("td", {}, String(c));
-    }))))));
-}
-
-async function execGuard(ship, rev, tkt, ord) {
-  const out = $("cx-out");
-  if (!ship && !rev && !tkt) { out.replaceChildren(el("p", { className: "banner" }, "Upload at least one CSV (Shipments, Reviews, or Tickets) or load the cross-tool fixture.")); return; }
-  const py = await engine();
-  let sp = "", rp = "", tp = "", op = "";
-  if (ship) { py.FS.writeFile("/tmp/ship.csv", ship); sp = "/tmp/ship.csv"; }
-  if (rev) { py.FS.writeFile("/tmp/rev.csv", rev); rp = "/tmp/rev.csv"; }
-  if (tkt) { py.FS.writeFile("/tmp/tkt.csv", tkt); tp = "/tmp/tkt.csv"; }
-  if (ord) { py.FS.writeFile("/tmp/ord.csv", ord); op = "/tmp/ord.csv"; }
-  py.globals.set("_sp", sp); py.globals.set("_rp", rp); py.globals.set("_tp", tp); py.globals.set("_op", op);
-  py.globals.set("_asof", $("cx-asof").value);
-  py.globals.set("_cool", Number($("cx-cool").value || 7));
-  py.globals.set("_rcool", Number($("cx-rcool").value || 30));
-  const res = JSON.parse(py.runPython("web_app.run_guard(_sp, _rp, _tp, _op, _asof, _cool, _rcool, 2.0)"));
-  if (res.error) { out.replaceChildren(el("p", { className: "banner" }, res.error)); return; }
-  const s = res.summary;
-  out.replaceChildren(
-    el("div", { className: "kpis" },
-      el("div", { className: "kpi" }, el("span", {}, "Active CRM Promo Holds"), el("b", {}, s.active_crm_promo_holds)),
-      el("div", { className: "kpi" }, el("span", {}, "CRM Holds Released"), el("b", {}, s.released_crm_holds)),
-      el("div", { className: "kpi" }, el("span", {}, "P0 Critical / VIP Cases"), el("b", {}, s.p0_critical_vip_cases)),
-      el("div", { className: "kpi" }, el("span", {}, "Unified CS Queue"), el("b", {}, s.total_cs_recovery_queue)),
-      el("div", { className: "kpi" }, el("span", {}, "Open Support Tickets"), el("b", {}, s.open_support_tickets))
-    ),
-    el("div", { className: "actions" },
-      el("button", { className: "btn ghost", type: "button", onclick: () => download("klaviyo_cx_promo_hold.csv", res.klaviyo_hold_csv, "text/csv") }, "Download klaviyo_cx_promo_hold.csv"),
-      el("button", { className: "btn ghost", type: "button", onclick: () => download("hubspot_cx_promo_hold.csv", res.hubspot_hold_csv, "text/csv") }, "Download hubspot_cx_promo_hold.csv"),
-      el("button", { className: "btn ghost", type: "button", onclick: () => download("cs_recovery_queue.csv", res.cs_queue_csv, "text/csv") }, "Download cs_recovery_queue.csv"),
-      el("button", { className: "btn ghost", type: "button", onclick: () => download("carrier_sla_scorecard.csv", res.carrier_scorecard_csv, "text/csv") }, "Download carrier_sla_scorecard.csv"),
-      el("button", { className: "btn ghost", type: "button", onclick: () => download("cx_ops_report.html", res.report_html, "text/html") }, "Download HTML Brief")
-    ),
-    el("h3", {}, "CRM Global Promo Hold &amp; Release List (Klaviyo / HubSpot)"),
-    makeTable(res.klaviyo_header, res.klaviyo_rows, 3),
-    el("h3", {}, "Deduplicated Customer Service Recovery Queue (Ranked by P0-P3 &times; LTV)"),
-    makeTable(res.queue_header, res.queue_rows, 0),
-    el("h3", {}, "Carrier SLA Scorecard (BI-Ready)"),
-    makeTable(res.carrier_header, res.carrier_rows)
-  );
-}
-
-$("cx-run").addEventListener("click", async () => execGuard(
-  await readFile($("cx-ship")), await readFile($("cx-rev")), await readFile($("cx-tkt")), await readFile($("cx-ord"))
-));
-$("cx-fix").addEventListener("click", async () => execGuard(
-  await fetchText("fixtures/shipments_carrier_schema.csv"),
-  await fetchText("fixtures/trustpilot_reviews_schema.csv"),
-  await fetchText("fixtures/zendesk_tickets_schema.csv"),
-  await fetchText("fixtures/shopify_orders_schema.csv")
-));
-
-engine().catch(() => {});
+NODES.forEach((n, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "node-btn";
+  b.innerHTML = `<small>${n.step}</small><b>${n.title}</b>`;
+  b.addEventListener("click", () => show(i));
+  stepsEl.append(b);
+});
+show(0);
 </script>
 </body>
 </html>
