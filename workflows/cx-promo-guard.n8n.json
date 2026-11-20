@@ -6,7 +6,11 @@
       "name": "Webhook: Carrier / Trustpilot / Zendesk Event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [140, 300],
+      "webhookId": "a1b2c3d4-2222-4000-8000-000000000001",
+      "position": [
+        140,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "cx-promo-guard",
@@ -20,26 +24,32 @@
       "name": "Shopify: Lookup Order & Customer LTV",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [380, 300],
+      "position": [
+        380,
+        300
+      ],
       "alwaysOutputData": true,
       "continueOnFail": true,
       "parameters": {
         "method": "GET",
-        "url": "=https://{{ $vars.SHOPIFY_STORE_DOMAIN || 'your-dev-store.myshopify.com' }}/admin/api/2025-01/orders.json?name={{ encodeURIComponent($json.body.order_id || '') }}&status=any",
+        "url": "=https://{{ $json.body.shopify_domain || 'your-dev-store.myshopify.com' }}/admin/api/2025-01/orders.json?name={{ encodeURIComponent($json.body.order_id || '') }}&status=any",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
           "timeout": 8000
         }
       },
-      "notes": "Filtered lookup by order_id (never fetches all store orders). Configure httpHeaderAuth with X-Shopify-Access-Token. Resolves missing email and customer LTV."
+      "notes": "Filtered lookup by order_id (Community-safe: set shopify_domain in payload or replace placeholder). Configure httpHeaderAuth with X-Shopify-Access-Token."
     },
     {
       "id": "3",
       "name": "Resolve Customer Email & VIP Status",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [620, 300],
+      "position": [
+        620,
+        300
+      ],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -86,7 +96,8 @@
               "type": "string"
             }
           ]
-        }
+        },
+        "options": {}
       },
       "notes": "Computes resolved_email (webhook or Shopify order fallback), orders_count, total_spent, and is_vip (orders >= 3 OR total_spent >= 300 EUR)."
     },
@@ -95,7 +106,10 @@
       "name": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [860, 300],
+      "position": [
+        860,
+        300
+      ],
       "continueOnFail": true,
       "parameters": {
         "method": "POST",
@@ -111,53 +125,27 @@
     {
       "id": "5",
       "name": "Parse AI Triage Output (Safe Defaults)",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1100, 300],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "t1",
-              "name": "theme",
-              "value": "={{ (() => { try { const raw = ($json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}').replace(/```json|```/g, '').trim(); return JSON.parse(raw).theme || 'cx_issue_open'; } catch { return 'cx_issue_open'; } })() }}",
-              "type": "string"
-            },
-            {
-              "id": "t2",
-              "name": "priority_tier",
-              "value": "={{ (() => { try { const raw = ($json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}').replace(/```json|```/g, '').trim(); return JSON.parse(raw).priority_tier || 'P2'; } catch { return 'P2'; } })() }}",
-              "type": "string"
-            },
-            {
-              "id": "t3",
-              "name": "owner_team",
-              "value": "={{ (() => { try { const raw = ($json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}').replace(/```json|```/g, '').trim(); return JSON.parse(raw).owner_team || 'customer_service'; } catch { return 'customer_service'; } })() }}",
-              "type": "string"
-            },
-            {
-              "id": "t4",
-              "name": "hold_days",
-              "value": "={{ (() => { try { const raw = ($json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}').replace(/```json|```/g, '').trim(); return Number(JSON.parse(raw).hold_days) || 14; } catch { return 14; } })() }}",
-              "type": "number"
-            },
-            {
-              "id": "t5",
-              "name": "internal_reply_draft",
-              "value": "={{ (() => { try { const raw = ($json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '{}').replace(/```json|```/g, '').trim(); return JSON.parse(raw).internal_reply_draft || 'AI draft unavailable — review order & customer context manually.'; } catch { return 'AI draft unavailable — review order & customer context manually.'; } })() }}",
-              "type": "string"
-            }
-          ]
-        }
+        "mode": "runOnceForEachItem",
+        "jsCode": "const raw = String(\n  $json.choices?.[0]?.message?.content ||\n  $json.candidates?.[0]?.content?.parts?.[0]?.text ||\n  '{}'\n).replace(/```json|```/g, '').trim();\n\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (err) {\n  parsed = {};\n}\n\nreturn {\n  json: {\n    theme: parsed.theme || 'cx_issue_open',\n    priority_tier: parsed.priority_tier || 'P2',\n    owner_team: parsed.owner_team || 'customer_service',\n    hold_days: Number(parsed.hold_days) || 14,\n    internal_reply_draft: parsed.internal_reply_draft || 'AI draft unavailable — review order & customer context manually.'\n  }\n};"
       },
-      "notes": "Single safe parsing node supporting OpenAI and Gemini outputs so downstream Klaviyo/HubSpot/Zendesk/Slack nodes never fail on malformed AI responses."
+      "notes": "Real JavaScript Code node (n8n Community-safe try/catch). Supports OpenAI & Gemini outputs cleanly."
     },
     {
       "id": "6",
       "name": "Klaviyo: Set cx_promo_hold = true",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1380, 140],
+      "position": [
+        1380,
+        140
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://a.klaviyo.com/api/profile-import/",
@@ -166,22 +154,35 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "revision", "value": "2026-10-15" },
-            { "name": "Content-Type", "value": "application/vnd.api+json" }
+            {
+              "name": "revision",
+              "value": "2026-10-15"
+            },
+            {
+              "name": "accept",
+              "value": "application/vnd.api+json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/vnd.api+json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ data: { type: 'profile', attributes: { email: $('Resolve Customer Email & VIP Status').item.json.resolved_email, properties: { cx_promo_hold: true, cx_review_request_hold: true, cx_hold_reason: $json.theme, cx_priority_tier: $json.priority_tier, cx_hold_days: $json.hold_days } } } }) }}"
       },
-      "notes": "Uses resolved_email (never raw webhook body.email) and stable Klaviyo API revision 2026-10-15. Configure httpHeaderAuth with Authorization: Klaviyo-API-Key YOUR_KEY."
+      "notes": "Uses resolved_email and stable Klaviyo API revision 2026-10-15. Configure httpHeaderAuth with Authorization: Klaviyo-API-Key YOUR_KEY."
     },
     {
       "id": "7",
       "name": "HubSpot: Set CX Promo Hold = Yes",
       "type": "n8n-nodes-base.hubspot",
       "typeVersion": 2,
-      "position": [1380, 300],
+      "position": [
+        1380,
+        300
+      ],
       "parameters": {
         "resource": "contact",
         "operation": "upsert",
@@ -189,12 +190,22 @@
         "additionalFields": {
           "customPropertiesUi": {
             "customPropertiesValues": [
-              { "property": "cx_promo_hold", "value": "true" },
-              { "property": "cx_review_request_hold", "value": "true" },
-              { "property": "cx_hold_reason", "value": "={{ $json.theme }}" }
+              {
+                "property": "cx_promo_hold",
+                "value": "true"
+              },
+              {
+                "property": "cx_review_request_hold",
+                "value": "true"
+              },
+              {
+                "property": "cx_hold_reason",
+                "value": "={{ $json.theme }}"
+              }
             ]
           }
-        }
+        },
+        "authentication": "appToken"
       },
       "notes": "Uses resolved_email from Shopify lookup/fallback to keep HubSpot suppression synced with Klaviyo."
     },
@@ -203,7 +214,10 @@
       "name": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)",
       "type": "n8n-nodes-base.zendesk",
       "typeVersion": 1,
-      "position": [1380, 460],
+      "position": [
+        1380,
+        460
+      ],
       "continueOnFail": true,
       "parameters": {
         "resource": "ticket",
@@ -220,23 +234,41 @@
       "name": "Guard: Is P0 Critical or VIP?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1660, 220],
+      "position": [
+        1660,
+        220
+      ],
       "parameters": {
         "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "combinator": "or",
           "conditions": [
             {
+              "id": "p0c",
               "leftValue": "={{ $('Parse AI Triage Output (Safe Defaults)').item.json.priority_tier }}",
               "rightValue": "P0",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             },
             {
+              "id": "vipc",
               "leftValue": "={{ $('Resolve Customer Email & VIP Status').item.json.is_vip }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
-        }
+        },
+        "options": {}
       },
       "notes": "Escalates to #cx-vip-alerts if AI flagged P0 (e.g. chargeback/legal threat) OR Shopify confirmed VIP status (orders >= 3 or LTV >= 300 EUR)."
     },
@@ -245,28 +277,116 @@
       "name": "Slack: Instant P0 / VIP Escalation",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
-      "position": [1920, 160],
+      "position": [
+        1920,
+        160
+      ],
       "parameters": {
-        "channel": "#cx-vip-alerts",
-        "text": "=:rotating_light: *CX Alert ({{ $('Parse AI Triage Output (Safe Defaults)').item.json.priority_tier }} | VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})* — Promos & Review Requests PAUSED\n*Customer:* {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} ({{ $('Resolve Customer Email & VIP Status').item.json.orders_count }} orders, EUR {{ $('Resolve Customer Email & VIP Status').item.json.total_spent }})\n*Order:* {{ $('Resolve Customer Email & VIP Status').item.json.order_id }} | *Theme:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.theme }} | *Owner:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.owner_team }}\n*Suggested internal draft (human review required):* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.internal_reply_draft }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#cx-vip-alerts",
+          "mode": "name"
+        },
+        "text": "=:rotating_light: *CX Alert ({{ $('Parse AI Triage Output (Safe Defaults)').item.json.priority_tier }} | VIP: {{ $('Resolve Customer Email & VIP Status').item.json.is_vip }})* — Promos & Review Requests PAUSED\n*Customer:* {{ $('Resolve Customer Email & VIP Status').item.json.resolved_email }} ({{ $('Resolve Customer Email & VIP Status').item.json.orders_count }} orders, EUR {{ $('Resolve Customer Email & VIP Status').item.json.total_spent }})\n*Order:* {{ $('Resolve Customer Email & VIP Status').item.json.order_id }} | *Theme:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.theme }} | *Owner:* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.owner_team }}\n*Suggested internal draft (human review required):* {{ $('Parse AI Triage Output (Safe Defaults)').item.json.internal_reply_draft }}",
+        "otherOptions": {},
+        "resource": "message",
+        "operation": "post"
       }
     }
   ],
   "connections": {
-    "Webhook: Carrier / Trustpilot / Zendesk Event": { "main": [[{ "node": "Shopify: Lookup Order & Customer LTV", "type": "main", "index": 0 }]] },
-    "Shopify: Lookup Order & Customer LTV": { "main": [[{ "node": "Resolve Customer Email & VIP Status", "type": "main", "index": 0 }]] },
-    "Resolve Customer Email & VIP Status": { "main": [[{ "node": "AI: Triage Urgency & Draft Empathy Reply (JSON)", "type": "main", "index": 0 }]] },
-    "AI: Triage Urgency & Draft Empathy Reply (JSON)": { "main": [[{ "node": "Parse AI Triage Output (Safe Defaults)", "type": "main", "index": 0 }]] },
-    "Parse AI Triage Output (Safe Defaults)": {
-      "main": [[
-        { "node": "Klaviyo: Set cx_promo_hold = true", "type": "main", "index": 0 },
-        { "node": "HubSpot: Set CX Promo Hold = Yes", "type": "main", "index": 0 },
-        { "node": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)", "type": "main", "index": 0 }
-      ]]
+    "Webhook: Carrier / Trustpilot / Zendesk Event": {
+      "main": [
+        [
+          {
+            "node": "Shopify: Lookup Order & Customer LTV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Klaviyo: Set cx_promo_hold = true": { "main": [[{ "node": "Guard: Is P0 Critical or VIP?", "type": "main", "index": 0 }]] },
-    "Guard: Is P0 Critical or VIP?": { "main": [[{ "node": "Slack: Instant P0 / VIP Escalation", "type": "main", "index": 0 }], []] }
+    "Shopify: Lookup Order & Customer LTV": {
+      "main": [
+        [
+          {
+            "node": "Resolve Customer Email & VIP Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Customer Email & VIP Status": {
+      "main": [
+        [
+          {
+            "node": "AI: Triage Urgency & Draft Empathy Reply (JSON)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI: Triage Urgency & Draft Empathy Reply (JSON)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Triage Output (Safe Defaults)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Triage Output (Safe Defaults)": {
+      "main": [
+        [
+          {
+            "node": "Klaviyo: Set cx_promo_hold = true",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HubSpot: Set CX Promo Hold = Yes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Zendesk: Add Internal Note (Human-in-the-Loop Draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Klaviyo: Set cx_promo_hold = true": {
+      "main": [
+        [
+          {
+            "node": "Guard: Is P0 Critical or VIP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: Is P0 Critical or VIP?": {
+      "main": [
+        [
+          {
+            "node": "Slack: Instant P0 / VIP Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

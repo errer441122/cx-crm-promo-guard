@@ -9,7 +9,7 @@
 
 1. Create custom profile/contact properties in **Klaviyo** and/or **HubSpot**: `cx_promo_hold` (boolean), `cx_review_request_hold` (boolean), `cx_hold_reason` (text), `cx_priority_tier` (text).
 2. Create the **`Global Exclusion — Active CX Hold`** segment and attach it to every promotional email template/campaign and to the Post-Purchase Review Request flow.
-3. Import [`workflows/cx-promo-guard.n8n.json`](../workflows/cx-promo-guard.n8n.json) and [`workflows/cx-hold-release.n8n.json`](../workflows/cx-hold-release.n8n.json) into n8n and connect credentials.
+3. Import [`workflows/cx-promo-guard.n8n.json`](../workflows/cx-promo-guard.n8n.json), [`workflows/cx-hold-release.n8n.json`](../workflows/cx-hold-release.n8n.json), and [`workflows/error-notifier.n8n.json`](../workflows/error-notifier.n8n.json) into n8n, connect credentials, and link the Error Notifier under **Settings → Error Workflow**.
 4. *(Optional no-webhook fallback)* If a carrier or review tool does not offer webhooks, upload the daily morning CSV using the ready-made templates in [`templates/`](../templates/).
 
 ## 2. Daily Routine (10 Minutes Every Morning)

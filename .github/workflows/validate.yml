@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify n8n workflow blueprints, VIP/resolved_email fixes, and documentation
+      - name: Verify n8n workflow blueprints, Community-safe schemas, VIP/resolved_email fixes, and docs
         run: |
           python3 - <<'PY'
           import json
@@ -19,11 +19,19 @@ jobs:
           w2 = json.load(open('workflows/cx-hold-release.n8n.json'))
           err = json.load(open('workflows/error-notifier.n8n.json'))
           assert len(w1['nodes']) == 10 and len(w2['nodes']) == 6 and len(err['nodes']) == 2
+          assert '$vars' not in json.dumps(w1) and '$vars' not in json.dumps(w2)
+          assert any(n['type'] == 'n8n-nodes-base.code' for n in w1['nodes']), "AI parser must be a real Code node"
           guard = [n for n in w1['nodes'] if 'Is P0 Critical or VIP' in n['name']][0]
           conds = guard['parameters']['conditions']['conditions']
           assert len(conds) == 2 and guard['parameters']['conditions']['combinator'] == 'or'
           kl = [n for n in w1['nodes'] if 'Klaviyo:' in n['name']][0]
           assert 'resolved_email' in kl['parameters']['jsonBody']
+          for wf in (w1, w2, err):
+              for n in wf['nodes']:
+                  if n['type'] == 'n8n-nodes-base.hubspot':
+                      assert n['parameters'].get('authentication') == 'appToken'
+                  if n['type'] == 'n8n-nodes-base.slack':
+                      assert n['parameters'].get('select') == 'channel' and 'channelId' in n['parameters']
           PY
           test -f prompts/cx-triage-and-draft-prompt.md
           test -f docs/state-machine-and-crm-rules.md

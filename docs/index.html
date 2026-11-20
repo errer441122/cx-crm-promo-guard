@@ -432,7 +432,7 @@ function select(i) {
   const sl = nodeBy(GUARD, "Slack: Instant");
   const alertOn = p0 || inc.customer.is_vip;
   steps.push(alertOn && sl
-    ? `<li class="step"><span class="dot"></span><h3>Alert in ${esc(sl.parameters.channel)}<small>P0 or VIP</small></h3><div class="note-card">${mrkdwn(fill(sl.parameters.text, inc))}</div></li>`
+    ? `<li class="step"><span class="dot"></span><h3>Alert in ${esc(sl.parameters.channelId?.value || sl.parameters.channel || "#cx-vip-alerts")}<small>P0 or VIP</small></h3><div class="note-card">${mrkdwn(fill(sl.parameters.text, inc))}</div></li>`
     : `<li class="step quiet"><span class="dot"></span><h3>No Slack alert<small>${esc(inc.ai.priority_tier)}</small></h3><p>Only P0 or VIP incidents post to <code>#cx-vip-alerts</code>, so the channel stays worth reading.</p></li>`);
 
   $("#thread").innerHTML = steps.join("");
